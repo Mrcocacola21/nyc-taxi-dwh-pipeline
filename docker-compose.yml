@@ -24,5 +24,17 @@ services:
     ports:
       - "8080:8080"
 
+  pipeline:
+    build: .
+    container_name: nyc_taxi_pipeline
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./data:/app/data
+    command: ["--help"]
+
 volumes:
   pgdata:

@@ -6,19 +6,19 @@ CREATE TABLE IF NOT EXISTS raw.taxi_zone_lookup (
   service_zone  TEXT
 );
 
--- Сырые поездки (Yellow). Поля по data dictionary TLC, + batch_id
+-- Сырые поездки (Yellow)
 CREATE TABLE IF NOT EXISTS raw.yellow_trips (
   batch_id                 TEXT NOT NULL,
-  vendorid                 INTEGER,
+  vendorid                 BIGINT,
   tpep_pickup_datetime     TIMESTAMP,
   tpep_dropoff_datetime    TIMESTAMP,
   passenger_count          NUMERIC,
   trip_distance            NUMERIC,
-  ratecodeid               INTEGER,
+  ratecodeid               BIGINT,
   store_and_fwd_flag       TEXT,
-  pulocationid             INTEGER,
-  dolocationid             INTEGER,
-  payment_type             INTEGER,
+  pulocationid             BIGINT,
+  dolocationid             BIGINT,
+  payment_type             BIGINT,
   fare_amount              NUMERIC,
   extra                    NUMERIC,
   mta_tax                  NUMERIC,
@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS raw.yellow_trips (
   cbd_congestion_fee       NUMERIC,
   ingested_at              TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
 
 -- (опционально) лог ошибок парсинга при ingestion
 CREATE TABLE IF NOT EXISTS raw.ingest_errors (
