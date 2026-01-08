@@ -1,0 +1,12 @@
+taxi_dwh:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: postgres
+      user: nyc
+      password: nyc
+      port: 5432
+      dbname: nyc_taxi
+      schema: stg
+      threads: 4

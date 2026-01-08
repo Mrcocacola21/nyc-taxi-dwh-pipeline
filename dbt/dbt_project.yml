@@ -1,0 +1,20 @@
+name: "taxi_dwh"
+version: "1.0.0"
+config-version: 2
+
+profile: "taxi_dwh"
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+
+models:
+  taxi_dwh:
+    staging:
+      +schema: stg
+      +materialized: view
+    quality:
+      +schema: quarantine
+      +materialized: table
+    clean:
+      +schema: clean
+      +materialized: incremental

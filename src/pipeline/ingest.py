@@ -49,7 +49,6 @@ import pandas as pd
 import pyarrow.parquet as pq
 
 def _load_yellow_parquet(cur, parquet_path: str, batch_id: str, batch_rows: int = 200_000):
-    # Какие колонки хотим положить в RAW (в нужном порядке)
     cols = [
         "batch_id",
         "vendorid",
@@ -75,15 +74,24 @@ def _load_yellow_parquet(cur, parquet_path: str, batch_id: str, batch_rows: int 
     ]
 
     pf = pq.ParquetFile(parquet_path)
-    parquet_cols = set(pf.schema.names)
 
-    # batch_id в parquet нет; читаем только то, что есть
-    read_cols = [c for c in cols if c != "batch_id" and c in parquet_cols]
+    # case-insensitive map: lower -> real parquet name
+    name_map = {n.lower(): n for n in pf.schema.names}
+
+    read_cols = []
+    for c in cols:
+        if c == "batch_id":
+            continue
+        real_name = name_map.get(c)
+        if real_name is not None:
+            read_cols.append(real_name)
 
     copy_sql = (
         f"COPY raw.yellow_trips ({','.join(cols)}) "
         "FROM STDIN WITH (FORMAT csv, NULL '', HEADER false)"
     )
+
+    INT_COLS = ["vendorid", "ratecodeid", "pulocationid", "dolocationid", "payment_type"]
 
     total = 0
     with cur.copy(copy_sql) as copy:
@@ -91,20 +99,24 @@ def _load_yellow_parquet(cur, parquet_path: str, batch_id: str, batch_rows: int 
             df = batch.to_pandas()
             df.columns = [c.strip().lower() for c in df.columns]
 
-            # Добавляем batch_id
+            # ✅ фикс: int-колонки -> nullable Int64 (иначе будут "1.0")
+            for c in INT_COLS:
+                if c in df.columns:
+                    df[c] = pd.to_numeric(df[c], errors="coerce").astype("Int64")
+
+            # batch_id
             df["batch_id"] = batch_id
 
-            # Если каких-то колонок нет в конкретном месяце — добавим пустыми
+            # если каких-то колонок нет в месяце — добавим пустыми
             for c in cols:
                 if c not in df.columns:
                     df[c] = pd.NA
 
-            # Приводим порядок колонок
             df = df[cols]
 
-            # CSV в память и отправляем в COPY
             buf = io.StringIO()
-            df.to_csv(buf, index=False, header=False, lineterminator="\n")
+            # ✅ na_rep='' чтобы NULL '' корректно работал в COPY
+            df.to_csv(buf, index=False, header=False, lineterminator="\n", na_rep="")
             copy.write(buf.getvalue().encode("utf-8"))
 
             total += len(df)

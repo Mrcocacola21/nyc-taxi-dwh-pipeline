@@ -29,11 +29,14 @@ services:
     container_name: nyc_taxi_pipeline
     env_file:
       - .env
+    environment:
+      - DBT_PROFILES_DIR=/app/dbt
     depends_on:
       postgres:
         condition: service_healthy
     volumes:
       - ./data:/app/data
+      - ./dbt:/app/dbt
     command: ["--help"]
 
 volumes:
