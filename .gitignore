@@ -24,3 +24,12 @@ great_expectations/.ge_store_backend_id
 # OS
 .DS_Store
 Thumbs.db
+
+# local data
+data/raw/
+data/tmp/
+
+# keep reports only (we will add them explicitly)
+data/*
+!data/reports/
+!data/reports/**
