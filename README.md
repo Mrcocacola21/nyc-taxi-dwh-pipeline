@@ -6,7 +6,7 @@ Goal: build an incremental ELT pipeline with data quality quarantine and benchma
 1) Copy env
 ```bash
 cp .env.example .env
-
+```
 ## Query Plan Analysis (EXPLAIN ANALYZE)
 
 We captured Postgres execution plans before and after creating indexes on `clean.clean_yellow_trips`.
