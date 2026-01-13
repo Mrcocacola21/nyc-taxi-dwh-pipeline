@@ -1,0 +1,19 @@
+version: 2
+
+models:
+  - name: stg_yellow_trips
+    columns:
+      - name: pickup_ts
+        tests: [not_null]
+      - name: dropoff_ts
+        tests: [not_null]
+      - name: pu_location_id
+        tests: [not_null]
+      - name: do_location_id
+        tests: [not_null]
+      - name: total_amount
+        tests:
+          - not_null
+      - name: trip_distance
+        tests:
+          - not_null

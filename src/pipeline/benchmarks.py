@@ -11,7 +11,6 @@ import pandas as pd
 import psycopg
 
 
-# 5 “бизнесовых” запросов (все возвращают мало строк, но читают много данных)
 QUERIES: Dict[str, str] = {
     "q1_top_pickup_zones_day": """
         select
@@ -24,6 +23,7 @@ QUERIES: Dict[str, str] = {
         order by trips desc
         limit 20
     """,
+
     "q2_revenue_by_day": """
         select
           pickup_ts::date as trip_date,
@@ -33,6 +33,17 @@ QUERIES: Dict[str, str] = {
         group by 1
         order by 1
     """,
+
+    # ✅ MART version of q2 (pre-aggregated table)
+    "q2_mart_daily_revenue": """
+        select
+          trip_date,
+          trips,
+          revenue
+        from marts.marts_daily_revenue
+        order by 1
+    """,
+
     "q3_join_zone_lookup_top20": """
         select
           z.borough,
@@ -46,6 +57,7 @@ QUERIES: Dict[str, str] = {
         order by trips desc
         limit 20
     """,
+
     "q4_payment_type_stats": """
         select
           payment_type,
@@ -55,6 +67,7 @@ QUERIES: Dict[str, str] = {
         group by 1
         order by trips desc
     """,
+
     "q5_hourly_peak": """
         select
           extract(hour from pickup_ts)::int as hr,
@@ -63,7 +76,18 @@ QUERIES: Dict[str, str] = {
         group by 1
         order by trips desc
     """,
+
+    # ✅ MART version of q5 (pre-aggregated by hour)
+    "q5_mart_hourly_peak": """
+        select
+          hr,
+          sum(trips) as trips
+        from marts.marts_hourly_peak
+        group by 1
+        order by trips desc
+    """,
 }
+
 
 
 def _pg_conn() -> psycopg.Connection:
