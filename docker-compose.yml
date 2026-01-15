@@ -38,6 +38,8 @@ services:
     volumes:
       - ./data:/app/data
       - ./dbt:/app/dbt
+      - ./:/app
+      - ./docs:/app/docs
     command: ["--help"]
 
 volumes:
