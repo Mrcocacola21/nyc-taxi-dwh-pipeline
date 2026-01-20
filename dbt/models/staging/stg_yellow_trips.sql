@@ -1,5 +1,5 @@
 with src as (
-  select * from raw.yellow_trips
+  select * from {{ source('raw', 'yellow_trips') }}
 ),
 
 typed as (
