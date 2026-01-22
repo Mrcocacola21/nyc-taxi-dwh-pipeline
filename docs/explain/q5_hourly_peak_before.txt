@@ -1,0 +1,17 @@
+                                                                QUERY PLAN                                                                 
+-------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=459737.63..462661.65 rows=1169610 width=12) (actual time=896.711..896.714 rows=24 loops=1)
+   Sort Key: (count(*)) DESC
+   Sort Method: quicksort  Memory: 25kB
+   Buffers: shared hit=2823 read=74432
+   ->  HashAggregate  (cost=281884.57..321866.50 rows=1169610 width=12) (actual time=896.514..896.680 rows=24 loops=1)
+         Group Key: (EXTRACT(hour FROM pickup_ts))::integer
+         Planned Partitions: 16  Batches: 1  Memory Usage: 3097kB
+         Buffers: shared hit=2820 read=74432
+         ->  Seq Scan on clean_yellow_trips  (cost=0.00..120332.54 rows=2872036 width=4) (actual time=0.051..644.122 rows=2872094 loops=1)
+               Buffers: shared hit=2820 read=74432
+ Planning:
+   Buffers: shared hit=59
+ Planning Time: 0.311 ms
+ Execution Time: 899.315 ms
+(14 rows)

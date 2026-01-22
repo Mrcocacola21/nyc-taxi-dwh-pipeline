@@ -1,0 +1,18 @@
+                                                                                 QUERY PLAN                                                                                 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=431148.73..433902.79 rows=1101624 width=12) (actual time=885.194..885.196 rows=24 loops=1)
+   Sort Key: (count(*)) DESC
+   Sort Method: quicksort  Memory: 25kB
+   Buffers: shared hit=182371 read=10887
+   ->  HashAggregate  (cost=262799.33..301764.15 rows=1101624 width=12) (actual time=884.937..885.163 rows=24 loops=1)
+         Group Key: (EXTRACT(hour FROM pickup_ts))::integer
+         Planned Partitions: 16  Batches: 1  Memory Usage: 3097kB
+         Buffers: shared hit=182368 read=10887
+         ->  Index Only Scan using idx_clean_pu_pickup on clean_yellow_trips  (cost=0.43..101228.01 rows=2872379 width=4) (actual time=0.052..633.156 rows=2872094 loops=1)
+               Heap Fetches: 0
+               Buffers: shared hit=182368 read=10887
+ Planning:
+   Buffers: shared hit=128
+ Planning Time: 0.494 ms
+ Execution Time: 888.076 ms
+(15 rows)

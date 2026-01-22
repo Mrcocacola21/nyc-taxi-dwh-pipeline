@@ -1,0 +1,21 @@
+                                                                                 QUERY PLAN                                                                                 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=4467.91..4467.96 rows=20 width=16) (actual time=20.897..20.900 rows=20 loops=1)
+   Buffers: shared hit=6 read=382
+   ->  Sort  (cost=4467.91..4468.39 rows=194 width=16) (actual time=20.896..20.897 rows=20 loops=1)
+         Sort Key: (count(*)) DESC
+         Sort Method: top-N heapsort  Memory: 26kB
+         Buffers: shared hit=6 read=382
+         ->  HashAggregate  (cost=4460.81..4462.74 rows=194 width=16) (actual time=20.822..20.839 rows=222 loops=1)
+               Group Key: pu_location_id
+               Batches: 1  Memory Usage: 48kB
+               Buffers: shared hit=3 read=382
+               ->  Index Only Scan using idx_clean_pickup_ts on clean_yellow_trips  (cost=0.43..3908.73 rows=110415 width=8) (actual time=0.051..10.520 rows=99466 loops=1)
+                     Index Cond: ((pickup_ts >= '2024-01-31 00:00:00'::timestamp without time zone) AND (pickup_ts < '2024-02-01 00:00:00'::timestamp without time zone))
+                     Heap Fetches: 0
+                     Buffers: shared hit=3 read=382
+ Planning:
+   Buffers: shared hit=129 read=6
+ Planning Time: 0.618 ms
+ Execution Time: 20.976 ms
+(18 rows)

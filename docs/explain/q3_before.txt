@@ -1,44 +1,47 @@
-QUERY PLAN
-Limit  (cost=105538.43..105538.48 rows=20 width=64) (actual time=779.678..809.648 rows=20 loops=1)
-  Buffers: shared hit=10106 read=67267
-  ->  Sort  (cost=105538.43..105539.09 rows=262 width=64) (actual time=727.808..757.775 rows=20 loops=1)
-        Sort Key: (count(*)) DESC
-        Sort Method: top-N heapsort  Memory: 28kB
-        Buffers: shared hit=10106 read=67267
-        ->  Finalize GroupAggregate  (cost=105460.50..105531.46 rows=262 width=64) (actual time=727.044..757.680 rows=257 loops=1)
-              Group Key: z.borough, z.zone
-              Buffers: shared hit=10103 read=67267
-              ->  Gather Merge  (cost=105460.50..105521.63 rows=524 width=64) (actual time=727.016..757.216 rows=738 loops=1)
-                    Workers Planned: 2
-                    Workers Launched: 2
-                    Buffers: shared hit=10103 read=67267
-                    ->  Sort  (cost=104460.47..104461.13 rows=262 width=64) (actual time=707.324..707.340 rows=246 loops=3)
-                          Sort Key: z.borough, z.zone
-                          Sort Method: quicksort  Memory: 56kB
-                          Buffers: shared hit=10103 read=67267
-                          Worker 0:  Sort Method: quicksort  Memory: 56kB
-                          Worker 1:  Sort Method: quicksort  Memory: 56kB
-                          ->  Partial HashAggregate  (cost=104446.67..104449.95 rows=262 width=64) (actual time=697.605..697.674 rows=246 loops=3)
-                                Group Key: z.borough, z.zone
-                                Batches: 1  Memory Usage: 157kB
-                                Buffers: shared hit=10087 read=67267
-                                Worker 0:  Batches: 1  Memory Usage: 157kB
-                                Worker 1:  Batches: 1  Memory Usage: 157kB
-                                ->  Hash Join  (cost=8.96..92479.61 rows=1196706 width=30) (actual time=7.816..418.046 rows=957365 loops=3)
-                                      Hash Cond: (t.pu_location_id = z.locationid)
-                                      Buffers: shared hit=10087 read=67267
-                                      ->  Parallel Seq Scan on clean_yellow_trips t  (cost=0.00..89279.06 rows=1196706 width=14) (actual time=0.042..167.205 rows=957365 loops=3)
-                                            Buffers: shared hit=10045 read=67267
-                                      ->  Hash  (cost=5.65..5.65 rows=265 width=28) (actual time=7.709..7.710 rows=265 loops=3)
-                                            Buckets: 1024  Batches: 1  Memory Usage: 25kB
-                                            Buffers: shared hit=9
-                                            ->  Seq Scan on taxi_zone_lookup z  (cost=0.00..5.65 rows=265 width=28) (actual time=7.616..7.655 rows=265 loops=3)
-                                                  Buffers: shared hit=9
-Planning:
-  Buffers: shared hit=255
-Planning Time: 0.746 ms
-JIT:
-  Functions: 49
-  Options: Inlining false, Optimization false, Expressions true, Deforming true
-  Timing: Generation 5.224 ms, Inlining 0.000 ms, Optimization 6.556 ms, Emission 68.227 ms, Total 80.006 ms
-Execution Time: 1069.306 ms
+﻿                                                                                    QUERY PLAN                                                                                     
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=105536.00..105536.05 rows=20 width=64) (actual time=611.286..629.718 rows=20 loops=1)
+   Buffers: shared hit=3522 read=73851
+   ->  Sort  (cost=105536.00..105536.65 rows=262 width=64) (actual time=564.150..582.580 rows=20 loops=1)
+         Sort Key: (count(*)) DESC
+         Sort Method: top-N heapsort  Memory: 28kB
+         Buffers: shared hit=3522 read=73851
+         ->  Finalize GroupAggregate  (cost=105458.06..105529.03 rows=262 width=64) (actual time=563.556..582.502 rows=257 loops=1)
+               Group Key: z.borough, z.zone
+               Buffers: shared hit=3519 read=73851
+               ->  Gather Merge  (cost=105458.06..105519.20 rows=524 width=64) (actual time=563.526..582.127 rows=739 loops=1)
+                     Workers Planned: 2
+                     Workers Launched: 2
+                     Buffers: shared hit=3519 read=73851
+                     ->  Sort  (cost=104458.04..104458.70 rows=262 width=64) (actual time=543.933..543.947 rows=246 loops=3)
+                           Sort Key: z.borough, z.zone
+                           Sort Method: quicksort  Memory: 56kB
+                           Buffers: shared hit=3519 read=73851
+                           Worker 0:  Sort Method: quicksort  Memory: 57kB
+                           Worker 1:  Sort Method: quicksort  Memory: 57kB
+                           ->  Partial HashAggregate  (cost=104444.24..104447.52 rows=262 width=64) (actual time=533.437..533.504 rows=246 loops=3)
+                                 Group Key: z.borough, z.zone
+                                 Batches: 1  Memory Usage: 157kB
+                                 Buffers: shared hit=3503 read=73851
+                                 Worker 0:  Batches: 1  Memory Usage: 157kB
+                                 Worker 1:  Batches: 1  Memory Usage: 157kB
+                                 ->  Hash Join  (cost=8.96..92478.25 rows=1196599 width=30) (actual time=7.684..306.872 rows=957365 loops=3)
+                                       Hash Cond: (t.pu_location_id = z.locationid)
+                                       Buffers: shared hit=3503 read=73851
+                                       ->  Parallel Seq Scan on clean_yellow_trips t  (cost=0.00..89277.99 rows=1196599 width=14) (actual time=0.042..108.297 rows=957365 loops=3)
+                                             Buffers: shared hit=3461 read=73851
+                                       ->  Hash  (cost=5.65..5.65 rows=265 width=28) (actual time=7.592..7.593 rows=265 loops=3)
+                                             Buckets: 1024  Batches: 1  Memory Usage: 25kB
+                                             Buffers: shared hit=9
+                                             ->  Seq Scan on taxi_zone_lookup z  (cost=0.00..5.65 rows=265 width=28) (actual time=7.520..7.545 rows=265 loops=3)
+                                                   Buffers: shared hit=9
+ Planning:
+   Buffers: shared hit=286 read=1
+ Planning Time: 1.368 ms
+ JIT:
+   Functions: 49
+   Options: Inlining false, Optimization false, Expressions true, Deforming true
+   Timing: Generation 5.183 ms, Inlining 0.000 ms, Optimization 5.751 ms, Emission 64.003 ms, Total 74.937 ms
+ Execution Time: 851.390 ms
+(43 rows)
+

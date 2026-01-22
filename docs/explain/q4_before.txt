@@ -1,0 +1,33 @@
+﻿                                                                             QUERY PLAN                                                                              
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=99254.01..99254.02 rows=5 width=48) (actual time=778.868..781.911 rows=5 loops=1)
+   Sort Key: (count(*)) DESC
+   Sort Method: quicksort  Memory: 25kB
+   Buffers: shared hit=3285 read=74043
+   ->  Finalize GroupAggregate  (cost=99252.62..99253.95 rows=5 width=48) (actual time=778.846..781.895 rows=5 loops=1)
+         Group Key: payment_type
+         Buffers: shared hit=3285 read=74043
+         ->  Gather Merge  (cost=99252.62..99253.79 rows=10 width=48) (actual time=778.831..781.875 rows=15 loops=1)
+               Workers Planned: 2
+               Workers Launched: 2
+               Buffers: shared hit=3285 read=74043
+               ->  Sort  (cost=98252.60..98252.61 rows=5 width=48) (actual time=774.992..774.994 rows=5 loops=3)
+                     Sort Key: payment_type
+                     Sort Method: quicksort  Memory: 25kB
+                     Buffers: shared hit=3285 read=74043
+                     Worker 0:  Sort Method: quicksort  Memory: 25kB
+                     Worker 1:  Sort Method: quicksort  Memory: 25kB
+                     ->  Partial HashAggregate  (cost=98252.48..98252.54 rows=5 width=48) (actual time=774.968..774.970 rows=5 loops=3)
+                           Group Key: payment_type
+                           Batches: 1  Memory Usage: 24kB
+                           Buffers: shared hit=3269 read=74043
+                           Worker 0:  Batches: 1  Memory Usage: 24kB
+                           Worker 1:  Batches: 1  Memory Usage: 24kB
+                           ->  Parallel Seq Scan on clean_yellow_trips  (cost=0.00..89277.99 rows=1196599 width=13) (actual time=0.159..564.320 rows=957365 loops=3)
+                                 Buffers: shared hit=3269 read=74043
+ Planning:
+   Buffers: shared hit=66
+ Planning Time: 3.134 ms
+ Execution Time: 782.071 ms
+(29 rows)
+

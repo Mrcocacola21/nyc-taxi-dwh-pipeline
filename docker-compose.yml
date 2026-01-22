@@ -2,6 +2,7 @@ services:
   postgres:
     image: postgres:16
     container_name: nyc_taxi_pg
+    shm_size: "1gb"
     env_file:
       - .env
     ports:

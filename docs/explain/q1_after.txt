@@ -1,24 +1,21 @@
-﻿# q1_top_pickup_zones_day  AFTER (with idx_clean_pickup_ts)
-# Command:
-# EXPLAIN (ANALYZE, BUFFERS) ...
-                                                                                QUERY PLAN                                                                                
+﻿                                                                                QUERY PLAN                                                                                
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=39542.92..39542.97 rows=20 width=16) (actual time=48.846..48.849 rows=20 loops=1)
-   Buffers: shared hit=98852
-   ->  Sort  (cost=39542.92..39543.41 rows=196 width=16) (actual time=48.845..48.847 rows=20 loops=1)
+ Limit  (cost=38227.04..38227.09 rows=20 width=16) (actual time=62.848..62.852 rows=20 loops=1)
+   Buffers: shared hit=95965 read=2868
+   ->  Sort  (cost=38227.04..38227.51 rows=188 width=16) (actual time=62.847..62.848 rows=20 loops=1)
          Sort Key: (count(*)) DESC
          Sort Method: top-N heapsort  Memory: 26kB
-         Buffers: shared hit=98852
-         ->  HashAggregate  (cost=39535.75..39537.71 rows=196 width=16) (actual time=48.780..48.797 rows=222 loops=1)
+         Buffers: shared hit=95965 read=2868
+         ->  HashAggregate  (cost=38220.16..38222.04 rows=188 width=16) (actual time=62.775..62.795 rows=222 loops=1)
                Group Key: pu_location_id
                Batches: 1  Memory Usage: 48kB
-               Buffers: shared hit=98849
-               ->  Index Scan using idx_clean_pickup_ts on clean_yellow_trips  (cost=0.43..39005.08 rows=106133 width=8) (actual time=0.022..34.453 rows=99466 loops=1)
+               Buffers: shared hit=95962 read=2868
+               ->  Index Scan using idx_clean_pickup_ts on clean_yellow_trips  (cost=0.43..37692.74 rows=105484 width=8) (actual time=0.074..48.568 rows=99466 loops=1)
                      Index Cond: ((pickup_ts >= '2024-01-31 00:00:00'::timestamp without time zone) AND (pickup_ts < '2024-02-01 00:00:00'::timestamp without time zone))
-                     Buffers: shared hit=98849
+                     Buffers: shared hit=95962 read=2868
  Planning:
-   Buffers: shared hit=132
- Planning Time: 0.523 ms
- Execution Time: 48.937 ms
+   Buffers: shared hit=129 read=3
+ Planning Time: 0.680 ms
+ Execution Time: 62.939 ms
 (17 rows)
 
