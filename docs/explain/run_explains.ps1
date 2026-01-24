@@ -152,6 +152,13 @@ Run-ExplainToFile $queries["q5_mart_hourly_peak"]   (Join-Path $OutDir "q5_mart.
 docker compose exec -T postgres psql -X -U nyc -d nyc_taxi -v ON_ERROR_STOP=1 -f /app/sql/perf/001_create_indexes.sql | Out-Null
 
 # -----------------------------
+# 4.5) VACUUM visibility map for stable Index Only Scan (Heap Fetches: 0)
+# -----------------------------
+docker compose exec -T postgres psql -X -U nyc -d nyc_taxi -v ON_ERROR_STOP=1 `
+  -c "VACUUM (ANALYZE) clean.clean_yellow_trips;" | Out-Null
+
+
+# -----------------------------
 # 5) AFTER plans (clean q1..q5)
 # -----------------------------
 foreach ($k in $beforeKeys) {
