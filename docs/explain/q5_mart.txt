@@ -1,17 +1,17 @@
-                                                          QUERY PLAN                                                          
-------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=45.64..46.14 rows=200 width=36) (actual time=0.241..0.242 rows=24 loops=1)
+                                                         QUERY PLAN                                                          
+-----------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=20.09..20.15 rows=24 width=36) (actual time=0.186..0.187 rows=24 loops=1)
    Sort Key: (sum(trips)) DESC
    Sort Method: quicksort  Memory: 25kB
    Buffers: shared hit=11
-   ->  HashAggregate  (cost=35.50..38.00 rows=200 width=36) (actual time=0.190..0.204 rows=24 loops=1)
+   ->  HashAggregate  (cost=19.23..19.53 rows=24 width=36) (actual time=0.156..0.159 rows=24 loops=1)
          Group Key: hr
-         Batches: 1  Memory Usage: 40kB
+         Batches: 1  Memory Usage: 24kB
          Buffers: shared hit=8
-         ->  Seq Scan on marts_hourly_peak  (cost=0.00..27.00 rows=1700 width=12) (actual time=0.012..0.062 rows=749 loops=1)
+         ->  Seq Scan on marts_hourly_peak  (cost=0.00..15.49 rows=749 width=12) (actual time=0.013..0.051 rows=749 loops=1)
                Buffers: shared hit=8
  Planning:
-   Buffers: shared hit=55
- Planning Time: 0.204 ms
- Execution Time: 0.336 ms
+   Buffers: shared hit=52
+ Planning Time: 0.264 ms
+ Execution Time: 0.280 ms
 (14 rows)

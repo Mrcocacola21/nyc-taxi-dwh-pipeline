@@ -1,21 +1,21 @@
                                                                                  QUERY PLAN                                                                                 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=4263.71..4263.76 rows=20 width=16) (actual time=22.276..22.280 rows=20 loops=1)
+ Limit  (cost=4264.78..4264.83 rows=20 width=16) (actual time=21.220..21.223 rows=20 loops=1)
    Buffers: shared hit=6 read=382
-   ->  Sort  (cost=4263.71..4264.19 rows=192 width=16) (actual time=22.275..22.277 rows=20 loops=1)
+   ->  Sort  (cost=4264.78..4265.27 rows=196 width=16) (actual time=21.218..21.220 rows=20 loops=1)
          Sort Key: (count(*)) DESC
          Sort Method: top-N heapsort  Memory: 26kB
          Buffers: shared hit=6 read=382
-         ->  HashAggregate  (cost=4256.68..4258.60 rows=192 width=16) (actual time=22.207..22.225 rows=222 loops=1)
+         ->  HashAggregate  (cost=4257.60..4259.56 rows=196 width=16) (actual time=21.145..21.162 rows=222 loops=1)
                Group Key: pu_location_id
                Batches: 1  Memory Usage: 48kB
                Buffers: shared hit=3 read=382
-               ->  Index Only Scan using idx_clean_pickup_ts on clean_yellow_trips  (cost=0.43..3734.01 rows=104535 width=8) (actual time=0.038..11.251 rows=99466 loops=1)
+               ->  Index Only Scan using idx_clean_pickup_ts on clean_yellow_trips  (cost=0.43..3730.97 rows=105327 width=8) (actual time=0.032..10.286 rows=99466 loops=1)
                      Index Cond: ((pickup_ts >= '2024-01-31 00:00:00'::timestamp without time zone) AND (pickup_ts < '2024-02-01 00:00:00'::timestamp without time zone))
                      Heap Fetches: 0
                      Buffers: shared hit=3 read=382
  Planning:
-   Buffers: shared hit=136 read=3
- Planning Time: 0.550 ms
- Execution Time: 22.366 ms
+   Buffers: shared hit=134 read=3
+ Planning Time: 0.717 ms
+ Execution Time: 21.354 ms
 (18 rows)

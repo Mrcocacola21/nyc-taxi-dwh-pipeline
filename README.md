@@ -1,4 +1,4 @@
-# 🚖 NYC Taxi DWH Pipeline — Postgres + dbt + Great Expectations (Quarantine • Benchmarks • EXPLAIN)
+# 🚖 NYC Taxi DWH Pipeline — Postgres, dbt, Great Expectations, EXPLAIN ANALYZE & Benchmarks
 
 > **Goal:** Build a reproducible, incremental ELT pipeline on NYC TLC Yellow Taxi data with a formal data-quality quarantine layer and performance evidence (benchmarks + `EXPLAIN (ANALYZE, BUFFERS)`).
 
@@ -153,8 +153,8 @@ docker compose run --rm pipeline bench --iters 7 --warmup 1 --phase after
 | **q5** (Hourly Peak) | **Pre-aggregated Mart** | **0.38** | 0.27 | 0.52 |
 
 **Interpretation:**
-* **Indexes** provide dramatic improvements for selective/range queries (q1).
-* **Marts** are required for global aggregations (q2, q5), reducing runtime from ~700–800ms to ~0.3–0.4ms.
+* **Why indexes help q1:** q1 applies a selective time-range filter on `pickup_ts`, so the planner can perform a range/index scan (or index-only scan) and touch far fewer pages than a full table scan; that reduces I/O and CPU for the aggregate.
+* **Why indexes do NOT help q2 and q5:** q2 and q5 are aggregation-dominated (group-bys over most rows). Even with indexes the planner often must read a large fraction of rows (or many index entries) to compute aggregates, so the dominant cost remains scanning and aggregation work — pre-aggregated marts avoid this by dramatically reducing input size.
 
 ---
 
@@ -172,6 +172,10 @@ We captured `EXPLAIN (ANALYZE, BUFFERS)` plans to understand the mechanics of pe
 * **Access path:** `Index Scan` using `idx_clean_pickup_ts` (range condition)
 * **Buffers:** read=219, hit=98,640
 * **Execution time:** 73.3 ms
+
+VACUUM note: to obtain stable `Index Only Scan` behavior the visibility map must be up-to-date — run `VACUUM (ANALYZE)` on the table after large writes so PostgreSQL can avoid heap fetches.
+
+Why Heap Fetches = 0 matters: `Heap Fetches: 0` indicates the planner satisfied the query from index pages (index-only access), avoiding extra heap I/O and reducing latency.
 
 > **Conclusion:** The index changes the access path from full scan → range scan, reducing I/O by >99% on the filtered workload.
 
@@ -238,3 +242,85 @@ For q2/q5, the dominant cost is aggregation over millions of rows, not row looku
 * [ ] Implement **partitioning** on `pickup_ts` for warehouse-scale optimization.
 * [ ] **CI/CD** (GitHub Actions): Run dbt compile/tests + optional GE checkpoint on PRs.
 * [ ] Extend quality rules for domain-specific anomalies (payment_type=0, negative totals, timestamp edge cases) with documented rationale.
+
+### Next Steps (short technical)
+
+- Partition `clean.clean_yellow_trips` by `pickup_ts` (range partitions) to enable pruning for time-window queries and reduce scan I/O.
+- Convert heavy, stable aggregations to incremental dbt models to avoid full re-aggregation across many months.
+- Consider materialized views (or incremental materializations) for expensive global aggregates where marts or incremental models are not sufficient.
+
+**How to run from scratch**
+
+- 1) From a clean machine, clone the repo and set env:
+
+    ```bash
+    git clone <repo> nyc-taxi-dwh-pipeline
+    cd nyc-taxi-dwh-pipeline
+    cp .env .env.local || true
+    # edit .env if you need non-default ports/credentials
+    ```
+
+- 2) Start services (Postgres + Adminer):
+
+    ```bash
+    docker compose up -d --build
+    ```
+
+- 3) Run the full pipeline (ingest -> dbt -> tests -> GE -> benchmarks):
+
+    ```bash
+    # uses local parquet in data/raw if present (otherwise downloads TLC data)
+    docker compose run --rm pipeline run-all --months 2024-01 --phase after
+    ```
+
+- 4) (Optional) Reproduce planner/index experiments and EXPLAIN plans:
+
+    ```bash
+    # drop indexes (BEFORE)
+    docker compose exec -T postgres psql -U nyc -d nyc_taxi -f /app/sql/perf/000_drop_indexes.sql
+    ```
+
+    ```powershell
+    # generate BEFORE plans (built-in script)
+    powershell -ExecutionPolicy Bypass -File docs\explain\run_explains.ps1
+    ```
+
+    ```bash
+    # create indexes + ANALYZE
+    docker compose exec -T postgres psql -U nyc -d nyc_taxi -f /app/sql/perf/001_create_indexes.sql
+    docker compose exec -T postgres psql -U nyc -d nyc_taxi -c "VACUUM (ANALYZE) clean.clean_yellow_trips;"
+    ```
+
+    ```powershell
+    # generate AFTER plans (the script does both before/after if you run it end-to-end)
+    powershell -ExecutionPolicy Bypass -File docs\explain\run_explains.ps1
+    ```
+
+**Performance results (real outputs from a fresh run)**
+
+- Benchmarks (median from a 7-iteration run, warmup=1, dataset=2024-01):
+
+    - q1_top_pickup_zones_day: median=13.7ms
+    - q2_revenue_by_day: median=733.6ms
+    - q2_mart_daily_revenue (mart): median=0.3ms
+    - q3_join_zone_lookup_top20: median=426.8ms
+    - q4_payment_type_stats: median=254.9ms
+    - q5_hourly_peak: median=664.6ms
+    - q5_mart_hourly_peak (mart): median=0.3ms
+
+- Representative EXPLAIN (ANALYZE, BUFFERS) snippet (q1 after creating indexes):
+
+    Limit  (actual time=21.220..21.223 rows=20)
+        ->  HashAggregate  (actual time=21.145..21.162 rows=222)
+                    ->  Index Only Scan using idx_clean_pickup_ts on clean_yellow_trips
+                                Index Cond: (pickup_ts >= '2024-01-31' AND pickup_ts < '2024-02-01')
+                                Heap Fetches: 0
+
+    (Execution Time: ~21.35 ms)
+
+- Notes and interpretation:
+    - The `Heap Fetches: 0` line indicates a successful Index-Only Scan (visibility map maintained by VACUUM), meaning the planner satisfied the query from index pages without fetching table heap rows.
+    - For highly selective/time-range queries (q1) indexes reduce scanned pages dramatically and show an order-of-magnitude speedup.
+    - For global aggregations (q2, q5), marts (pre-aggregated tables) provide the largest wins by reducing work from millions of rows to tiny tables.
+
+If you'd like, I can commit these README changes and run the explain generation again to attach full plan excerpts for each query.

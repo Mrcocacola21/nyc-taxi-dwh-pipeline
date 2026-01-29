@@ -1,42 +1,42 @@
-                                                                                    QUERY PLAN                                                                                    
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=90095.58..90095.63 rows=20 width=64) (actual time=531.454..533.926 rows=20 loops=1)
-   Buffers: shared hit=2768 read=74614
-   ->  Sort  (cost=90095.58..90096.23 rows=262 width=64) (actual time=531.453..533.923 rows=20 loops=1)
+                                                                                    QUERY PLAN                                                                                     
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=105480.56..105480.61 rows=20 width=64) (actual time=544.427..547.196 rows=20 loops=1)
+   Buffers: shared hit=2460 read=74862
+   ->  Sort  (cost=105480.56..105481.21 rows=262 width=64) (actual time=544.426..547.192 rows=20 loops=1)
          Sort Key: (count(*)) DESC
          Sort Method: top-N heapsort  Memory: 28kB
-         Buffers: shared hit=2768 read=74614
-         ->  Finalize GroupAggregate  (cost=90017.65..90088.61 rows=262 width=64) (actual time=530.745..533.837 rows=257 loops=1)
+         Buffers: shared hit=2460 read=74862
+         ->  Finalize GroupAggregate  (cost=105402.62..105473.58 rows=262 width=64) (actual time=543.720..547.114 rows=257 loops=1)
                Group Key: z.borough, z.zone
-               Buffers: shared hit=2765 read=74614
-               ->  Gather Merge  (cost=90017.65..90078.78 rows=524 width=64) (actual time=530.723..533.465 rows=740 loops=1)
+               Buffers: shared hit=2457 read=74862
+               ->  Gather Merge  (cost=105402.62..105463.76 rows=524 width=64) (actual time=543.701..546.685 rows=740 loops=1)
                      Workers Planned: 2
                      Workers Launched: 2
-                     Buffers: shared hit=2765 read=74614
-                     ->  Sort  (cost=89017.62..89018.28 rows=262 width=64) (actual time=527.647..527.664 rows=247 loops=3)
+                     Buffers: shared hit=2457 read=74862
+                     ->  Sort  (cost=104402.60..104403.25 rows=262 width=64) (actual time=540.338..540.378 rows=247 loops=3)
                            Sort Key: z.borough, z.zone
                            Sort Method: quicksort  Memory: 56kB
-                           Buffers: shared hit=2765 read=74614
-                           Worker 0:  Sort Method: quicksort  Memory: 57kB
-                           Worker 1:  Sort Method: quicksort  Memory: 56kB
-                           ->  Partial HashAggregate  (cost=89003.82..89007.10 rows=262 width=64) (actual time=527.306..527.371 rows=247 loops=3)
+                           Buffers: shared hit=2457 read=74862
+                           Worker 0:  Sort Method: quicksort  Memory: 56kB
+                           Worker 1:  Sort Method: quicksort  Memory: 57kB
+                           ->  Partial HashAggregate  (cost=104388.80..104392.07 rows=262 width=64) (actual time=539.901..540.018 rows=247 loops=3)
                                  Group Key: z.borough, z.zone
                                  Batches: 1  Memory Usage: 157kB
-                                 Buffers: shared hit=2749 read=74614
+                                 Buffers: shared hit=2441 read=74862
                                  Worker 0:  Batches: 1  Memory Usage: 157kB
                                  Worker 1:  Batches: 1  Memory Usage: 157kB
-                                 ->  Hash Join  (cost=8.96..83849.69 rows=515413 width=56) (actual time=0.154..304.433 rows=957365 loops=3)
+                                 ->  Hash Join  (cost=8.96..92420.80 rows=1196800 width=30) (actual time=0.180..307.145 rows=957365 loops=3)
                                        Hash Cond: (t.pu_location_id = z.locationid)
-                                       Buffers: shared hit=2749 read=74614
-                                       ->  Parallel Seq Scan on clean_yellow_trips t  (cost=0.00..82466.13 rows=515413 width=40) (actual time=0.024..106.481 rows=957365 loops=3)
-                                             Buffers: shared hit=2698 read=74614
-                                       ->  Hash  (cost=5.65..5.65 rows=265 width=28) (actual time=0.078..0.078 rows=265 loops=3)
+                                       Buffers: shared hit=2441 read=74862
+                                       ->  Parallel Seq Scan on clean_yellow_trips t  (cost=0.00..89220.00 rows=1196800 width=14) (actual time=0.027..103.559 rows=957365 loops=3)
+                                             Buffers: shared hit=2390 read=74862
+                                       ->  Hash  (cost=5.65..5.65 rows=265 width=28) (actual time=0.090..0.091 rows=265 loops=3)
                                              Buckets: 1024  Batches: 1  Memory Usage: 25kB
                                              Buffers: shared hit=9
-                                             ->  Seq Scan on taxi_zone_lookup z  (cost=0.00..5.65 rows=265 width=28) (actual time=0.013..0.035 rows=265 loops=3)
+                                             ->  Seq Scan on taxi_zone_lookup z  (cost=0.00..5.65 rows=265 width=28) (actual time=0.013..0.040 rows=265 loops=3)
                                                    Buffers: shared hit=9
  Planning:
-   Buffers: shared hit=284 read=3 dirtied=1
- Planning Time: 0.696 ms
- Execution Time: 534.107 ms
+   Buffers: shared hit=288
+ Planning Time: 0.848 ms
+ Execution Time: 547.391 ms
 (39 rows)

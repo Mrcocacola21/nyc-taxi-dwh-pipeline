@@ -1,13 +1,13 @@
                                                        QUERY PLAN                                                        
 -------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=78.60..81.43 rows=1130 width=44) (actual time=0.086..0.087 rows=35 loops=1)
+ Sort  (cost=78.60..81.43 rows=1130 width=44) (actual time=0.083..0.085 rows=35 loops=1)
    Sort Key: trip_date
    Sort Method: quicksort  Memory: 26kB
    Buffers: shared hit=4
-   ->  Seq Scan on marts_daily_revenue  (cost=0.00..21.30 rows=1130 width=44) (actual time=0.041..0.043 rows=35 loops=1)
+   ->  Seq Scan on marts_daily_revenue  (cost=0.00..21.30 rows=1130 width=44) (actual time=0.046..0.048 rows=35 loops=1)
          Buffers: shared hit=1
  Planning:
    Buffers: shared hit=41
- Planning Time: 0.181 ms
- Execution Time: 0.107 ms
+ Planning Time: 0.207 ms
+ Execution Time: 0.098 ms
 (10 rows)

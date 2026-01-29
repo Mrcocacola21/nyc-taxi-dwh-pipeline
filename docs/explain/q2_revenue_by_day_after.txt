@@ -1,17 +1,17 @@
                                                                  QUERY PLAN                                                                 
 --------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=543293.43..546264.31 rows=1188354 width=44) (actual time=852.506..852.509 rows=35 loops=1)
+ Sort  (cost=556248.33..559395.36 rows=1258814 width=44) (actual time=879.145..879.148 rows=35 loops=1)
    Sort Key: ((pickup_ts)::date)
    Sort Method: quicksort  Memory: 26kB
-   Buffers: shared hit=3401 read=73914
-   ->  HashAggregate  (cost=304396.10..350270.34 rows=1188354 width=44) (actual time=852.412..852.480 rows=35 loops=1)
+   Buffers: shared hit=2937 read=74318
+   ->  HashAggregate  (cost=304329.30..351259.60 rows=1258814 width=44) (actual time=879.053..879.118 rows=35 loops=1)
          Group Key: (pickup_ts)::date
          Planned Partitions: 64  Batches: 1  Memory Usage: 801kB
-         Buffers: shared hit=3398 read=73914
-         ->  Seq Scan on clean_yellow_trips  (cost=0.00..113214.62 rows=2872210 width=10) (actual time=0.023..480.453 rows=2872094 loops=1)
-               Buffers: shared hit=3398 read=73914
+         Buffers: shared hit=2934 read=74318
+         ->  Seq Scan on clean_yellow_trips  (cost=0.00..113153.55 rows=2872124 width=10) (actual time=0.029..498.917 rows=2872094 loops=1)
+               Buffers: shared hit=2934 read=74318
  Planning:
    Buffers: shared hit=149
- Planning Time: 0.482 ms
- Execution Time: 853.287 ms
+ Planning Time: 0.479 ms
+ Execution Time: 879.925 ms
 (14 rows)

@@ -1,28 +1,17 @@
-                                                                          QUERY PLAN                                                                          
---------------------------------------------------------------------------------------------------------------------------------------------------------------
- Finalize GroupAggregate  (cost=88630.93..88684.60 rows=200 width=44) (actual time=383.111..386.515 rows=35 loops=1)
-   Group Key: ((pickup_ts)::date)
-   Buffers: shared hit=2998 read=74330
-   ->  Gather Merge  (cost=88630.93..88677.60 rows=400 width=44) (actual time=383.102..386.455 rows=100 loops=1)
-         Workers Planned: 2
-         Workers Launched: 2
-         Buffers: shared hit=2998 read=74330
-         ->  Sort  (cost=87630.91..87631.41 rows=200 width=44) (actual time=380.108..380.110 rows=33 loops=3)
-               Sort Key: ((pickup_ts)::date)
-               Sort Method: quicksort  Memory: 28kB
-               Buffers: shared hit=2998 read=74330
-               Worker 0:  Sort Method: quicksort  Memory: 28kB
-               Worker 1:  Sort Method: quicksort  Memory: 28kB
-               ->  Partial HashAggregate  (cost=87620.26..87623.26 rows=200 width=44) (actual time=380.052..380.067 rows=33 loops=3)
-                     Group Key: (pickup_ts)::date
-                     Batches: 1  Memory Usage: 48kB
-                     Buffers: shared hit=2982 read=74330
-                     Worker 0:  Batches: 1  Memory Usage: 48kB
-                     Worker 1:  Batches: 1  Memory Usage: 48kB
-                     ->  Parallel Seq Scan on clean_yellow_trips  (cost=0.00..83754.67 rows=515413 width=36) (actual time=0.037..218.598 rows=957365 loops=3)
-                           Buffers: shared hit=2982 read=74330
+                                                                 QUERY PLAN                                                                 
+--------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=543837.54..546816.52 rows=1191590 width=44) (actual time=870.154..870.157 rows=35 loops=1)
+   Sort Key: ((pickup_ts)::date)
+   Sort Method: quicksort  Memory: 26kB
+   Buffers: shared hit=2617 read=74638
+   ->  HashAggregate  (cost=304344.72..350268.56 rows=1191590 width=44) (actual time=870.056..870.120 rows=35 loops=1)
+         Group Key: (pickup_ts)::date
+         Planned Partitions: 64  Batches: 1  Memory Usage: 801kB
+         Buffers: shared hit=2614 read=74638
+         ->  Seq Scan on clean_yellow_trips  (cost=0.00..113155.99 rows=2872319 width=10) (actual time=0.060..492.727 rows=2872094 loops=1)
+               Buffers: shared hit=2614 read=74638
  Planning:
-   Buffers: shared hit=101
- Planning Time: 0.267 ms
- Execution Time: 386.659 ms
-(25 rows)
+   Buffers: shared hit=75
+ Planning Time: 0.334 ms
+ Execution Time: 871.052 ms
+(14 rows)

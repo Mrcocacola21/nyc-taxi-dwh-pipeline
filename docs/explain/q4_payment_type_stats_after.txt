@@ -1,32 +1,32 @@
                                                                              QUERY PLAN                                                                             
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=99256.73..99256.74 rows=5 width=48) (actual time=283.062..286.200 rows=5 loops=1)
+ Sort  (cost=99196.10..99196.11 rows=5 width=48) (actual time=284.633..287.446 rows=5 loops=1)
    Sort Key: (count(*)) DESC
    Sort Method: quicksort  Memory: 25kB
-   Buffers: shared hit=3542 read=73786
-   ->  Finalize GroupAggregate  (cost=99255.34..99256.67 rows=5 width=48) (actual time=283.040..286.185 rows=5 loops=1)
+   Buffers: shared hit=3078 read=74190
+   ->  Finalize GroupAggregate  (cost=99194.71..99196.04 rows=5 width=48) (actual time=284.608..287.431 rows=5 loops=1)
          Group Key: payment_type
-         Buffers: shared hit=3542 read=73786
-         ->  Gather Merge  (cost=99255.34..99256.51 rows=10 width=48) (actual time=283.031..286.171 rows=15 loops=1)
+         Buffers: shared hit=3078 read=74190
+         ->  Gather Merge  (cost=99194.71..99195.88 rows=10 width=48) (actual time=284.599..287.414 rows=15 loops=1)
                Workers Planned: 2
                Workers Launched: 2
-               Buffers: shared hit=3542 read=73786
-               ->  Sort  (cost=98255.32..98255.33 rows=5 width=48) (actual time=280.209..280.211 rows=5 loops=3)
+               Buffers: shared hit=3078 read=74190
+               ->  Sort  (cost=98194.69..98194.70 rows=5 width=48) (actual time=281.427..281.429 rows=5 loops=3)
                      Sort Key: payment_type
                      Sort Method: quicksort  Memory: 25kB
-                     Buffers: shared hit=3542 read=73786
+                     Buffers: shared hit=3078 read=74190
                      Worker 0:  Sort Method: quicksort  Memory: 25kB
                      Worker 1:  Sort Method: quicksort  Memory: 25kB
-                     ->  Partial HashAggregate  (cost=98255.20..98255.26 rows=5 width=48) (actual time=280.187..280.189 rows=5 loops=3)
+                     ->  Partial HashAggregate  (cost=98194.57..98194.63 rows=5 width=48) (actual time=281.403..281.405 rows=5 loops=3)
                            Group Key: payment_type
                            Batches: 1  Memory Usage: 24kB
-                           Buffers: shared hit=3526 read=73786
+                           Buffers: shared hit=3062 read=74190
                            Worker 0:  Batches: 1  Memory Usage: 24kB
                            Worker 1:  Batches: 1  Memory Usage: 24kB
-                           ->  Parallel Seq Scan on clean_yellow_trips  (cost=0.00..89279.54 rows=1196754 width=13) (actual time=0.025..95.495 rows=957365 loops=3)
-                                 Buffers: shared hit=3526 read=73786
+                           ->  Parallel Seq Scan on clean_yellow_trips  (cost=0.00..89219.18 rows=1196718 width=13) (actual time=0.044..95.519 rows=957365 loops=3)
+                                 Buffers: shared hit=3062 read=74190
  Planning:
-   Buffers: shared hit=146
- Planning Time: 0.371 ms
- Execution Time: 286.360 ms
+   Buffers: shared hit=144
+ Planning Time: 0.430 ms
+ Execution Time: 287.577 ms
 (29 rows)

@@ -1,33 +1,36 @@
                                                                                        QUERY PLAN                                                                                       
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=86266.05..86266.10 rows=20 width=16) (actual time=126.550..126.659 rows=20 loops=1)
-   Buffers: shared hit=2618 read=74808
-   ->  Sort  (cost=86266.05..86266.55 rows=200 width=16) (actual time=126.549..126.656 rows=20 loops=1)
+ Limit  (cost=96491.02..96491.07 rows=20 width=16) (actual time=109.536..112.028 rows=20 loops=1)
+   Buffers: shared hit=2278 read=74990
+   ->  Sort  (cost=96491.02..96491.49 rows=190 width=16) (actual time=109.520..112.010 rows=20 loops=1)
          Sort Key: (count(*)) DESC
          Sort Method: top-N heapsort  Memory: 26kB
-         Buffers: shared hit=2618 read=74808
-         ->  Finalize GroupAggregate  (cost=86189.23..86260.73 rows=200 width=16) (actual time=123.299..126.618 rows=222 loops=1)
+         Buffers: shared hit=2278 read=74990
+         ->  Finalize GroupAggregate  (cost=96437.82..96485.96 rows=190 width=16) (actual time=109.333..111.962 rows=222 loops=1)
                Group Key: pu_location_id
-               Buffers: shared hit=2618 read=74808
-               ->  Gather Merge  (cost=86189.23..86256.73 rows=400 width=16) (actual time=123.295..126.539 rows=587 loops=1)
+               Buffers: shared hit=2278 read=74990
+               ->  Gather Merge  (cost=96437.82..96482.16 rows=380 width=16) (actual time=109.329..111.902 rows=584 loops=1)
                      Workers Planned: 2
                      Workers Launched: 2
-                     Buffers: shared hit=2618 read=74808
-                     ->  Partial GroupAggregate  (cost=85189.21..85210.53 rows=200 width=16) (actual time=117.292..120.230 rows=196 loops=3)
-                           Group Key: pu_location_id
-                           Buffers: shared hit=2618 read=74808
-                           ->  Sort  (cost=85189.21..85195.65 rows=2577 width=8) (actual time=117.280..118.391 rows=33155 loops=3)
-                                 Sort Key: pu_location_id
-                                 Sort Method: quicksort  Memory: 769kB
-                                 Buffers: shared hit=2618 read=74808
-                                 Worker 0:  Sort Method: quicksort  Memory: 1537kB
-                                 Worker 1:  Sort Method: quicksort  Memory: 1537kB
-                                 ->  Parallel Seq Scan on clean_yellow_trips  (cost=0.00..85043.20 rows=2577 width=8) (actual time=97.394..114.165 rows=33155 loops=3)
+                     Buffers: shared hit=2278 read=74990
+                     ->  Sort  (cost=95437.80..95438.28 rows=190 width=16) (actual time=106.254..106.264 rows=195 loops=3)
+                           Sort Key: pu_location_id
+                           Sort Method: quicksort  Memory: 32kB
+                           Buffers: shared hit=2278 read=74990
+                           Worker 0:  Sort Method: quicksort  Memory: 32kB
+                           Worker 1:  Sort Method: quicksort  Memory: 32kB
+                           ->  Partial HashAggregate  (cost=95428.71..95430.61 rows=190 width=16) (actual time=106.159..106.180 rows=195 loops=3)
+                                 Group Key: pu_location_id
+                                 Batches: 1  Memory Usage: 48kB
+                                 Buffers: shared hit=2262 read=74990
+                                 Worker 0:  Batches: 1  Memory Usage: 48kB
+                                 Worker 1:  Batches: 1  Memory Usage: 48kB
+                                 ->  Parallel Seq Scan on clean_yellow_trips  (cost=0.00..95203.99 rows=44943 width=8) (actual time=56.143..101.835 rows=33155 loops=3)
                                        Filter: ((pickup_ts >= '2024-01-31 00:00:00'::timestamp without time zone) AND (pickup_ts < '2024-02-01 00:00:00'::timestamp without time zone))
                                        Rows Removed by Filter: 924209
-                                       Buffers: shared hit=2504 read=74808
+                                       Buffers: shared hit=2262 read=74990
  Planning:
-   Buffers: shared hit=87
- Planning Time: 0.318 ms
- Execution Time: 126.908 ms
-(30 rows)
+   Buffers: shared hit=69
+ Planning Time: 0.525 ms
+ Execution Time: 112.183 ms
+(33 rows)
