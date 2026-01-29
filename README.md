@@ -322,5 +322,3 @@ For q2/q5, the dominant cost is aggregation over millions of rows, not row looku
     - The `Heap Fetches: 0` line indicates a successful Index-Only Scan (visibility map maintained by VACUUM), meaning the planner satisfied the query from index pages without fetching table heap rows.
     - For highly selective/time-range queries (q1) indexes reduce scanned pages dramatically and show an order-of-magnitude speedup.
     - For global aggregations (q2, q5), marts (pre-aggregated tables) provide the largest wins by reducing work from millions of rows to tiny tables.
-
-If you'd like, I can commit these README changes and run the explain generation again to attach full plan excerpts for each query.
