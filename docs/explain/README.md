@@ -1,21 +1,41 @@
 # EXPLAIN Evidence
 
-## q1_top_pickup_zones_day — Impact of indexing
+This folder stores reproducible `EXPLAIN (ANALYZE, BUFFERS)` outputs used in the thesis/performance narrative.
 
-**Predicate:** pickup_ts in [2024-01-31, 2024-02-01)
+## Canonical plan files
 
-### Before (no index)
-- Plan: `Finalize GroupAggregate` + `Gather Merge` over workers (parallel)
-- Buffers: `shared hit=9870 read=67458`
-- Runtime: `actual time ~869–873 ms` (top node)
+- `q1_top_pickup_zones_day_before.txt`
+- `q1_top_pickup_zones_day_after.txt`
+- `q2_revenue_by_day_before.txt`
+- `q2_revenue_by_day_after.txt`
+- `q3_join_zone_lookup_top20_before.txt`
+- `q3_join_zone_lookup_top20_after.txt`
+- `q4_payment_type_stats_before.txt`
+- `q4_payment_type_stats_after.txt`
+- `q5_hourly_peak_before.txt`
+- `q5_hourly_peak_after.txt`
+- `q2_clean.txt`
+- `q2_mart.txt`
+- `q5_clean.txt`
+- `q5_mart.txt`
 
-See: `q1_before.txt`
+## How to regenerate
 
-### After (idx_clean_pickup_ts)
-- Plan: `Index Scan using idx_clean_pickup_ts on clean_yellow_trips`
-- Buffers: `shared hit=98630 read=219`
-- Runtime: `Execution Time: 58.277 ms`
+Run the script from repo root:
 
-See: `q1_after.txt`
+```powershell
+powershell -ExecutionPolicy Bypass -File docs\explain\run_explains.ps1
+```
 
-**Conclusion:** The access path changes from a near-full scan to an index range scan, cutting disk reads from **67458** to **219** pages (≈ **99.7%** less reads) and reducing latency by ~**15×** for this selective query.
+The script performs:
+
+1. Drop indexes (`sql/perf/000_drop_indexes.sql`) for BEFORE plans.
+2. Collect BEFORE plans.
+3. Create indexes (`sql/perf/001_create_indexes.sql`).
+4. Run `VACUUM (ANALYZE) clean.clean_yellow_trips`.
+5. Collect AFTER plans and write all outputs in this directory.
+
+## Notes
+
+- These files are evidence artifacts and are intentionally versioned.
+- Regenerate them only on the intended benchmark dataset (for example `2024-01`) to keep comparisons meaningful.

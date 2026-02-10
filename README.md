@@ -251,50 +251,50 @@ For q2/q5, the dominant cost is aggregation over millions of rows, not row looku
 
 **How to run from scratch**
 
-- 1) From a clean machine, clone the repo and set env:
+1. From a clean machine, clone the repo and set env:
 
-    ```bash
-    git clone <repo> nyc-taxi-dwh-pipeline
-    cd nyc-taxi-dwh-pipeline
-    cp .env .env.local || true
-    # edit .env if you need non-default ports/credentials
-    ```
+```bash
+git clone <repo> nyc-taxi-dwh-pipeline
+cd nyc-taxi-dwh-pipeline
+cp .env .env.local || true
+# edit .env if you need non-default ports/credentials
+```
 
-- 2) Start services (Postgres + Adminer):
+2. Start services (Postgres + Adminer):
 
-    ```bash
-    docker compose up -d --build
-    ```
+```bash
+docker compose up -d --build
+```
 
-- 3) Run the full pipeline (ingest -> dbt -> tests -> GE -> benchmarks):
+3. Run the full pipeline (ingest -> dbt -> tests -> GE -> benchmarks):
 
-    ```bash
-    # uses local parquet in data/raw if present (otherwise downloads TLC data)
-    docker compose run --rm pipeline run-all --months 2024-01 --phase after
-    ```
+```bash
+# uses local parquet in data/raw if present (otherwise downloads TLC data)
+docker compose run --rm pipeline run-all --months 2024-01 --phase after
+```
 
-- 4) (Optional) Reproduce planner/index experiments and EXPLAIN plans:
+4. (Optional) Reproduce planner/index experiments and EXPLAIN plans:
 
-    ```bash
-    # drop indexes (BEFORE)
-    docker compose exec -T postgres psql -U nyc -d nyc_taxi -f /app/sql/perf/000_drop_indexes.sql
-    ```
+```bash
+# drop indexes (BEFORE)
+docker compose exec -T postgres psql -U nyc -d nyc_taxi -f /app/sql/perf/000_drop_indexes.sql
+```
 
-    ```powershell
-    # generate BEFORE plans (built-in script)
-    powershell -ExecutionPolicy Bypass -File docs\explain\run_explains.ps1
-    ```
+```powershell
+# generate BEFORE plans (built-in script)
+powershell -ExecutionPolicy Bypass -File docs\explain\run_explains.ps1
+```
 
-    ```bash
-    # create indexes + ANALYZE
-    docker compose exec -T postgres psql -U nyc -d nyc_taxi -f /app/sql/perf/001_create_indexes.sql
-    docker compose exec -T postgres psql -U nyc -d nyc_taxi -c "VACUUM (ANALYZE) clean.clean_yellow_trips;"
-    ```
+```bash
+# create indexes + ANALYZE
+docker compose exec -T postgres psql -U nyc -d nyc_taxi -f /app/sql/perf/001_create_indexes.sql
+docker compose exec -T postgres psql -U nyc -d nyc_taxi -c "VACUUM (ANALYZE) clean.clean_yellow_trips;"
+```
 
-    ```powershell
-    # generate AFTER plans (the script does both before/after if you run it end-to-end)
-    powershell -ExecutionPolicy Bypass -File docs\explain\run_explains.ps1
-    ```
+```powershell
+# generate AFTER plans (the script does both before/after if you run it end-to-end)
+powershell -ExecutionPolicy Bypass -File docs\explain\run_explains.ps1
+```
 
 **Performance results (real outputs from a fresh run)**
 
@@ -310,15 +310,96 @@ For q2/q5, the dominant cost is aggregation over millions of rows, not row looku
 
 - Representative EXPLAIN (ANALYZE, BUFFERS) snippet (q1 after creating indexes):
 
-    Limit  (actual time=21.220..21.223 rows=20)
-        ->  HashAggregate  (actual time=21.145..21.162 rows=222)
-                    ->  Index Only Scan using idx_clean_pickup_ts on clean_yellow_trips
-                                Index Cond: (pickup_ts >= '2024-01-31' AND pickup_ts < '2024-02-01')
-                                Heap Fetches: 0
+```text
+Limit  (actual time=21.220..21.223 rows=20)
+    ->  HashAggregate  (actual time=21.145..21.162 rows=222)
+                ->  Index Only Scan using idx_clean_pickup_ts on clean_yellow_trips
+                            Index Cond: (pickup_ts >= '2024-01-31' AND pickup_ts < '2024-02-01')
+                            Heap Fetches: 0
 
-    (Execution Time: ~21.35 ms)
+(Execution Time: ~21.35 ms)
+```
 
 - Notes and interpretation:
     - The `Heap Fetches: 0` line indicates a successful Index-Only Scan (visibility map maintained by VACUUM), meaning the planner satisfied the query from index pages without fetching table heap rows.
     - For highly selective/time-range queries (q1) indexes reduce scanned pages dramatically and show an order-of-magnitude speedup.
     - For global aggregations (q2, q5), marts (pre-aggregated tables) provide the largest wins by reducing work from millions of rows to tiny tables.
+
+---
+
+## Repo Health and Cleanup Notes (2026-02-10)
+
+### Fast path (small reproducibility run)
+
+Use this when you want a quick CI-like verification without downloading a full TLC month.
+
+```bash
+docker compose up -d --build
+docker compose exec -T postgres psql -X -U nyc -d nyc_taxi -v ON_ERROR_STOP=1 -f /app/sql/dev/seed_ci_sample.sql
+docker compose run --rm --entrypoint bash pipeline -lc "cd /app/dbt && dbt compile && dbt run --full-refresh && dbt test"
+docker compose run --rm --entrypoint bash pipeline -lc "python -m src.pipeline.ge_checkpoint"
+docker compose run --rm pipeline bench --iters 2 --warmup 0 --phase before
+docker compose run --rm pipeline bench --iters 2 --warmup 0 --phase after
+docker compose run --rm pipeline bench-compare
+powershell -ExecutionPolicy Bypass -File docs\explain\run_explains.ps1
+```
+
+### Full path (thesis/evidence run)
+
+Use the real ingest path for benchmark-grade evidence:
+
+```bash
+docker compose run --rm pipeline ingest --months 2024-01
+docker compose run --rm --entrypoint bash pipeline -lc "cd /app/dbt && dbt run --full-refresh && dbt test"
+docker compose run --rm --entrypoint bash pipeline -lc "python -m src.pipeline.ge_checkpoint"
+docker compose run --rm pipeline bench --iters 7 --warmup 1 --phase before
+docker compose exec -T postgres psql -X -U nyc -d nyc_taxi -v ON_ERROR_STOP=1 -f /app/sql/perf/001_create_indexes.sql
+docker compose run --rm pipeline bench --iters 7 --warmup 1 --phase after
+docker compose run --rm pipeline bench-compare
+powershell -ExecutionPolicy Bypass -File docs\explain\run_explains.ps1
+```
+
+### Artifacts and evidence
+
+- Benchmarks: `data/reports/benchmarks_*.csv`, `data/reports/benchmarks_*.md`, `data/reports/benchmarks_speedup_*.md`
+- GE checkpoint outputs: `data/reports/ge/checkpoint_result_*.json`
+- GE Data Docs snapshot: `docs/ge/data_docs/index.html`
+- EXPLAIN plans: `docs/explain/*.txt` (see `docs/explain/README.md`)
+
+### Evidence vs generated files
+
+- Evidence kept in git:
+  - `data/reports/**`
+  - `docs/explain/**`
+  - `docs/ge/data_docs/**`
+- Generated/local only (ignored):
+  - `data/raw/**`
+  - `dbt/target/**`
+  - `dbt/logs/**`
+  - `dbt/dbt_packages/**`
+  - `.ruff_cache/`, `.pytest_cache/`, `.mypy_cache/`
+
+### Optional Makefile shortcuts
+
+If GNU Make is available, use:
+
+```bash
+make up
+make seed-sample
+make dbt
+make dbt-full-refresh
+make dbt-test
+make ge
+make bench-before
+make bench-after
+make bench-compare
+make explain
+make down
+```
+
+### Troubleshooting
+
+- `dbt` cannot connect: verify `.env` values and that `docker compose ps` shows `postgres` as `healthy`.
+- `dbt test` fails on null checks: raw sample data is invalid or incomplete; reseed with `sql/dev/seed_ci_sample.sql`.
+- GE checkpoint fails with `success=false`: inspect the latest file in `data/reports/ge/` and open `docs/ge/data_docs/index.html`.
+- EXPLAIN script fails on missing objects: run dbt first so `clean` and `marts` relations exist.
