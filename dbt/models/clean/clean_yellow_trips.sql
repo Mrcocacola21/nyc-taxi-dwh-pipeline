@@ -1,14 +1,71 @@
+{% set raw_batch_ids = var('batch_ids', []) %}
+{% set rebuild_batch_ids = [] %}
+{% if raw_batch_ids is string %}
+  {% for batch_id in raw_batch_ids.split(',') %}
+    {% set batch_id_trimmed = batch_id | trim %}
+    {% if batch_id_trimmed %}
+      {% do rebuild_batch_ids.append(batch_id_trimmed) %}
+    {% endif %}
+  {% endfor %}
+{% elif raw_batch_ids is sequence and raw_batch_ids is not mapping %}
+  {% for batch_id in raw_batch_ids %}
+    {% set batch_id_trimmed = (batch_id | string) | trim %}
+    {% if batch_id_trimmed %}
+      {% do rebuild_batch_ids.append(batch_id_trimmed) %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+{% set rebuild_batch_ids_sql = [] %}
+{% for batch_id in rebuild_batch_ids %}
+  {% do rebuild_batch_ids_sql.append("'" ~ (batch_id | replace("'", "''")) ~ "'") %}
+{% endfor %}
+
+{% set changed_batches_sql %}
+  select s.batch_id
+  from {{ ref('stg_yellow_trips') }} s
+  left join (
+    select
+      batch_id,
+      max(ingested_at) as max_ingested_at
+    from {{ this }}
+    group by 1
+  ) t on t.batch_id = s.batch_id
+  group by s.batch_id, t.max_ingested_at
+  having t.max_ingested_at is null or max(s.ingested_at) > t.max_ingested_at
+{% endset %}
+
+{% set pre_hooks = [] %}
+{% if is_incremental() %}
+  {% if rebuild_batch_ids_sql | length > 0 %}
+    {% do pre_hooks.append("delete from " ~ this ~ " where batch_id in (" ~ (rebuild_batch_ids_sql | join(', ')) ~ ")") %}
+  {% else %}
+    {% do pre_hooks.append("delete from " ~ this ~ " where batch_id in (" ~ (changed_batches_sql | trim) ~ ")") %}
+  {% endif %}
+{% endif %}
+
 {{
   config(
     materialized='incremental',
-    unique_key='row_fingerprint',
-    incremental_strategy='merge'
+    unique_key='batch_id',
+    incremental_strategy='delete+insert',
+    pre_hook=pre_hooks
   )
 }}
 
 with src as (
   select *
   from {{ ref('stg_yellow_trips') }}
+
+  {% if is_incremental() %}
+    {% if rebuild_batch_ids_sql | length > 0 %}
+      where batch_id in ({{ rebuild_batch_ids_sql | join(', ') }})
+    {% else %}
+      where batch_id in (
+        {{ changed_batches_sql }}
+      )
+    {% endif %}
+  {% endif %}
 ),
 
 good as (
@@ -43,7 +100,3 @@ fingerprinted as (
 
 select *
 from fingerprinted
-
-{% if is_incremental() %}
-  where batch_id not in (select distinct batch_id from {{ this }})
-{% endif %}

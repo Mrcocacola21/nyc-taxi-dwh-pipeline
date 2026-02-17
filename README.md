@@ -80,6 +80,24 @@ Build all layers from Staging to Marts:
 docker compose run --rm --entrypoint bash pipeline -lc "cd /app/dbt && dbt run --full-refresh"
 ```
 
+### 4.1 Safe Batch Replacement (Incremental Clean)
+If you re-ingest an existing month with `--replace-batch`, pass that batch list to dbt so `clean.clean_yellow_trips` rebuilds exactly those batches (delete + insert per `batch_id`):
+```bash
+docker compose run --rm pipeline ingest --months 2024-01 --replace-batch
+docker compose run --rm --entrypoint bash pipeline -lc "cd /app/dbt && dbt run --vars '{\"batch_ids\": [\"2024-01\"]}'"
+```
+
+For multiple months:
+```bash
+docker compose run --rm pipeline ingest --months 2024-01,2024-02 --replace-batch
+docker compose run --rm --entrypoint bash pipeline -lc "cd /app/dbt && dbt run --vars '{\"batch_ids\": [\"2024-01\", \"2024-02\"]}'"
+```
+
+Quick verification for one batch:
+```bash
+make verify-clean-batch MONTH=2024-01
+```
+
 ### 5. Run dbt Tests
 ```bash
 docker compose run --rm --entrypoint bash pipeline -lc "cd /app/dbt && dbt test"
@@ -119,6 +137,11 @@ The project includes a CLI tool that runs queries multiple times, warms up cache
 
 ### Workflow: Reproducing “Before vs After”
 
+Set one run id and reuse it for both phases:
+```bash
+RUN_ID=20260129_demo
+```
+
 **A) Drop Indexes**
 ```bash
 docker compose exec -T postgres psql -U nyc -d nyc_taxi -f /app/sql/perf/000_drop_indexes.sql
@@ -126,7 +149,7 @@ docker compose exec -T postgres psql -U nyc -d nyc_taxi -f /app/sql/perf/000_dro
 
 **B) Bench (Before)**
 ```bash
-docker compose run --rm pipeline bench --iters 7 --warmup 1 --phase before
+docker compose run --rm pipeline bench --iters 7 --warmup 1 --phase before --run-id $RUN_ID --batches 2024-01
 ```
 
 **C) Create Indexes**
@@ -136,7 +159,12 @@ docker compose exec -T postgres psql -U nyc -d nyc_taxi -f /app/sql/perf/001_cre
 
 **D) Bench (After)**
 ```bash
-docker compose run --rm pipeline bench --iters 7 --warmup 1 --phase after
+docker compose run --rm pipeline bench --iters 7 --warmup 1 --phase after --run-id $RUN_ID --batches 2024-01
+```
+
+**E) Compare only that run pair**
+```bash
+docker compose run --rm pipeline bench-compare --run-id $RUN_ID
 ```
 
 ### ✅ Latest Benchmark Snapshot
@@ -223,8 +251,40 @@ For q2/q5, the dominant cost is aggregation over millions of rows, not row looku
 | **Reset Database** | `docker compose down -v` |
 | **Run dbt** | `docker compose run --rm --entrypoint bash pipeline -lc "cd /app/dbt && dbt run"` |
 | **Test (dbt)** | `docker compose run --rm --entrypoint bash pipeline -lc "cd /app/dbt && dbt test"` |
-| **Run Benchmarks** | `docker compose run --rm pipeline bench --iters 7 --warmup 1 --phase after` |
+| **Run Benchmarks** | `docker compose run --rm pipeline bench --iters 7 --warmup 1 --phase after --run-id <RUN_ID> --batches 2024-01` |
+| **Compare Benchmarks** | `docker compose run --rm pipeline bench-compare --run-id <RUN_ID>` |
 | **GE Checkpoint** | `docker compose run --rm --entrypoint bash pipeline -lc "python -m src.pipeline.ge_checkpoint"` |
+
+---
+
+## CI (GitHub Actions)
+
+Workflow: `.github/workflows/ci.yml`
+
+Triggers:
+- `pull_request`
+- `push` to `main`
+- `workflow_dispatch` (manual run)
+
+Fast CI path:
+1. `docker compose up -d --build`
+2. Seed deterministic sample via `sql/dev/seed_ci_sample.sql`
+3. Run dbt: `compile` -> `run --full-refresh` -> `test`
+4. Run lightweight benchmarks with fixed run id `ci_${{ github.run_id }}`:
+   - `bench --iters 2 --warmup 0 --phase before --run-id <RUN_ID> --batches 2024-01`
+   - `bench --iters 2 --warmup 0 --phase after --run-id <RUN_ID> --batches 2024-01`
+   - `bench-compare --run-id <RUN_ID>`
+
+Great Expectations in CI:
+- Default: disabled on pull requests.
+- Enable on push/main by setting repository variable `RUN_GE=true`.
+- Enable for a manual run via `workflow_dispatch` input `run_ge=true`.
+
+Uploaded artifacts:
+- `data/reports/**` (benchmark CSV/MD/meta and GE checkpoint JSON if GE ran)
+- `docs/ge/data_docs/**` (only when GE runs)
+- `dbt/target/manifest.json`
+- `dbt/target/run_results.json`
 
 ---
 
@@ -256,7 +316,7 @@ For q2/q5, the dominant cost is aggregation over millions of rows, not row looku
 ```bash
 git clone <repo> nyc-taxi-dwh-pipeline
 cd nyc-taxi-dwh-pipeline
-cp .env .env.local || true
+cp .env.example .env
 # edit .env if you need non-default ports/credentials
 ```
 
@@ -272,6 +332,12 @@ docker compose up -d --build
 # uses local parquet in data/raw if present (otherwise downloads TLC data)
 docker compose run --rm pipeline run-all --months 2024-01 --phase after
 ```
+
+If you are reloading existing batches, use:
+```bash
+docker compose run --rm pipeline run-all --months 2024-01,2024-02 --replace-batch --phase after
+```
+`run-all --replace-batch` now passes `batch_ids` into dbt, so `clean.clean_yellow_trips` rebuilds those batches safely.
 
 4. (Optional) Reproduce planner/index experiments and EXPLAIN plans:
 
@@ -338,9 +404,10 @@ docker compose up -d --build
 docker compose exec -T postgres psql -X -U nyc -d nyc_taxi -v ON_ERROR_STOP=1 -f /app/sql/dev/seed_ci_sample.sql
 docker compose run --rm --entrypoint bash pipeline -lc "cd /app/dbt && dbt compile && dbt run --full-refresh && dbt test"
 docker compose run --rm --entrypoint bash pipeline -lc "python -m src.pipeline.ge_checkpoint"
-docker compose run --rm pipeline bench --iters 2 --warmup 0 --phase before
-docker compose run --rm pipeline bench --iters 2 --warmup 0 --phase after
-docker compose run --rm pipeline bench-compare
+RUN_ID=ci_smoke_001
+docker compose run --rm pipeline bench --iters 2 --warmup 0 --phase before --run-id $RUN_ID --batches 2024-01
+docker compose run --rm pipeline bench --iters 2 --warmup 0 --phase after --run-id $RUN_ID --batches 2024-01
+docker compose run --rm pipeline bench-compare --run-id $RUN_ID
 powershell -ExecutionPolicy Bypass -File docs\explain\run_explains.ps1
 ```
 
@@ -352,16 +419,17 @@ Use the real ingest path for benchmark-grade evidence:
 docker compose run --rm pipeline ingest --months 2024-01
 docker compose run --rm --entrypoint bash pipeline -lc "cd /app/dbt && dbt run --full-refresh && dbt test"
 docker compose run --rm --entrypoint bash pipeline -lc "python -m src.pipeline.ge_checkpoint"
-docker compose run --rm pipeline bench --iters 7 --warmup 1 --phase before
+RUN_ID=thesis_2024_01
+docker compose run --rm pipeline bench --iters 7 --warmup 1 --phase before --run-id $RUN_ID --batches 2024-01
 docker compose exec -T postgres psql -X -U nyc -d nyc_taxi -v ON_ERROR_STOP=1 -f /app/sql/perf/001_create_indexes.sql
-docker compose run --rm pipeline bench --iters 7 --warmup 1 --phase after
-docker compose run --rm pipeline bench-compare
+docker compose run --rm pipeline bench --iters 7 --warmup 1 --phase after --run-id $RUN_ID --batches 2024-01
+docker compose run --rm pipeline bench-compare --run-id $RUN_ID
 powershell -ExecutionPolicy Bypass -File docs\explain\run_explains.ps1
 ```
 
 ### Artifacts and evidence
 
-- Benchmarks: `data/reports/benchmarks_*.csv`, `data/reports/benchmarks_*.md`, `data/reports/benchmarks_speedup_*.md`
+- Benchmarks: `data/reports/benchmarks_<run_id>_<phase>.csv`, `data/reports/benchmarks_<run_id>_<phase>.md`, `data/reports/benchmarks_speedup_*.md`, `data/reports/bench_meta_<run_id>.json`
 - GE checkpoint outputs: `data/reports/ge/checkpoint_result_*.json`
 - GE Data Docs snapshot: `docs/ge/data_docs/index.html`
 - EXPLAIN plans: `docs/explain/*.txt` (see `docs/explain/README.md`)
@@ -390,9 +458,10 @@ make dbt
 make dbt-full-refresh
 make dbt-test
 make ge
-make bench-before
-make bench-after
-make bench-compare
+make bench-before BENCH_RUN_ID=my_run
+make bench-after BENCH_RUN_ID=my_run
+make bench-compare BENCH_RUN_ID=my_run
+make verify-clean-batch MONTH=2024-01
 make explain
 make down
 ```

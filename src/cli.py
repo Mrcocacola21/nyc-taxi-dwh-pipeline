@@ -1,5 +1,7 @@
 import argparse
+import json
 import os
+import shlex
 import subprocess
 import sys
 from dotenv import load_dotenv
@@ -15,6 +17,10 @@ def _run_shell(cmd: str) -> None:
     subprocess.run(cmd, shell=True, check=True)
 
 
+def _parse_csv_list(raw: str) -> list[str]:
+    return [v.strip() for v in raw.split(",") if v.strip()]
+
+
 def main():
     load_dotenv()
 
@@ -26,11 +32,29 @@ def main():
     bench.add_argument("--iters", type=int, default=7)
     bench.add_argument("--warmup", type=int, default=1)
     bench.add_argument("--phase", default="after", choices=["before", "after"])
+    bench.add_argument(
+        "--run-id",
+        default="",
+        help="Optional run id; use the same value for before/after pair comparisons",
+    )
+    bench.add_argument(
+        "--batches",
+        default="",
+        help="Optional comma-separated batch ids for metadata, e.g. 2024-01,2024-02",
+    )
 
     # -------- bench-compare --------
-    sub.add_parser(
+    bench_compare = sub.add_parser(
         "bench-compare",
-        help="Compare latest before/after benchmark CSVs and write speedup report",
+        help="Compare benchmark CSVs deterministically by run-id or explicit file pair",
+    )
+    bench_compare.add_argument("--run-id", default="", help="Compare benchmarks_<run_id>_before/after.csv")
+    bench_compare.add_argument("--before-file", default="", help="Explicit before CSV path")
+    bench_compare.add_argument("--after-file", default="", help="Explicit after CSV path")
+    bench_compare.add_argument(
+        "--allow-mismatched-runs",
+        action="store_true",
+        help="Allow explicit before/after files with different run_id",
     )
 
     # -------- ingest --------
@@ -69,6 +93,11 @@ def main():
         help="Which TLC dataset to ingest",
     )
     runall.add_argument("--phase", default="after", choices=["before", "after"])
+    runall.add_argument(
+        "--run-id",
+        default="",
+        help="Optional run id for benchmark outputs in this run",
+    )
     runall.add_argument("--iters", type=int, default=7)
     runall.add_argument("--warmup", type=int, default=1)
 
@@ -93,20 +122,35 @@ def main():
     args = p.parse_args()
 
     if args.cmd == "ingest":
-        months = [m.strip() for m in args.months.split(",") if m.strip()]
+        months = _parse_csv_list(args.months)
         ingest_all(months=months, dataset=args.dataset, replace_batch=args.replace_batch)
         return
 
     if args.cmd == "bench":
-        run_benchmarks(iters=args.iters, warmup=args.warmup, phase=args.phase)
+        run_benchmarks(
+            iters=args.iters,
+            warmup=args.warmup,
+            phase=args.phase,
+            run_id=args.run_id or None,
+            batch_ids=_parse_csv_list(args.batches),
+        )
         return
 
     if args.cmd == "bench-compare":
-        compare_latest_reports()
+        try:
+            compare_latest_reports(
+                run_id=args.run_id,
+                before_file=args.before_file,
+                after_file=args.after_file,
+                allow_mismatched_runs=args.allow_mismatched_runs,
+            )
+        except (FileNotFoundError, ValueError) as e:
+            print(f"[bench-compare] ERROR: {e}", file=sys.stderr)
+            sys.exit(2)
         return
 
     if args.cmd == "run-all":
-        months = [m.strip() for m in args.months.split(",") if m.strip()]
+        months = _parse_csv_list(args.months)
         if not months:
             print("[run-all] ERROR: --months is empty", file=sys.stderr)
             sys.exit(2)
@@ -118,6 +162,9 @@ def main():
             dbt_cmd = "cd /app/dbt && dbt run"
             if args.full_refresh:
                 dbt_cmd += " --full-refresh"
+            if args.replace_batch:
+                dbt_vars = shlex.quote(json.dumps({"batch_ids": months}))
+                dbt_cmd += f" --vars {dbt_vars}"
             if args.dbt_select.strip():
                 dbt_cmd += f" --select {args.dbt_select.strip()}"
             _run_shell(dbt_cmd)
@@ -129,7 +176,13 @@ def main():
             _run_shell("python -m src.pipeline.ge_checkpoint")
 
         if not args.skip_bench:
-            run_benchmarks(iters=args.iters, warmup=args.warmup, phase=args.phase)
+            run_benchmarks(
+                iters=args.iters,
+                warmup=args.warmup,
+                phase=args.phase,
+                run_id=args.run_id or None,
+                batch_ids=months,
+            )
 
         print("\n[run-all] ✅ DONE\n", flush=True)
         return

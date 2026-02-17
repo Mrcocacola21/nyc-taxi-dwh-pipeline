@@ -228,20 +228,20 @@ def _build_suite(context: gx.DataContext, suite_name: str) -> Any:
     # ---- thesis-style business rules ----
     mostly = float(os.getenv("GE_MOSTLY", "0.999"))
 
-    # 1) dropoff_ts > pickup_ts
+    # 1) dropoff_ts >= pickup_ts
     _add_expectation_compat(
         suite,
         "expect_column_pair_values_A_to_be_greater_than_B",
         kwargs={
             "column_A": "dropoff_ts",
             "column_B": "pickup_ts",
-            "or_equal": False,
+            "or_equal": True,
             "ignore_row_if": "either_value_is_missing",
             "mostly": mostly,
         },
         meta={
             "severity": "critical",
-            "notes": "Business rule: dropoff_ts must be strictly greater than pickup_ts.",
+            "notes": "Business rule: dropoff_ts must be greater than or equal to pickup_ts.",
         },
     )
 

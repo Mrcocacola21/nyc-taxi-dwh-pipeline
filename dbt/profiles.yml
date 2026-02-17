@@ -3,10 +3,10 @@ taxi_dwh:
   outputs:
     dev:
       type: postgres
-      host: postgres
-      user: nyc
-      password: nyc
-      port: 5432
-      dbname: nyc_taxi
+      host: "{{ env_var('POSTGRES_HOST', 'postgres') }}"
+      user: "{{ env_var('POSTGRES_USER', 'nyc') }}"
+      password: "{{ env_var('POSTGRES_PASSWORD', 'nyc') }}"
+      port: "{{ env_var('POSTGRES_PORT', '5432') | int }}"
+      dbname: "{{ env_var('POSTGRES_DB', 'nyc_taxi') }}"
       schema: stg
-      threads: 4
+      threads: "{{ env_var('DBT_THREADS', '4') | int }}"
