@@ -1,0 +1,4 @@
+        scanned_relation         | rows_seen 
+---------------------------------+-----------
+ clean.clean_yellow_trips_202401 |     99476
+(1 row)

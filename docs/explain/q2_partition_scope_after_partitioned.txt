@@ -1,0 +1,23 @@
+                                                                                  QUERY PLAN                                                                                  
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=1094522.43..1099981.59 rows=2183665 width=44) (actual time=2107.159..2107.164 rows=65 loops=1)
+   Sort Key: ((clean_yellow_trips.pickup_ts)::date)
+   Sort Method: quicksort  Memory: 28kB
+   Buffers: shared hit=10068 read=145219
+   ->  HashAggregate  (cost=641061.60..730249.85 rows=2183665 width=44) (actual time=2107.039..2107.129 rows=65 loops=1)
+         Group Key: ((clean_yellow_trips.pickup_ts)::date)
+         Planned Partitions: 128  Batches: 1  Memory Usage: 817kB
+         Buffers: shared hit=10065 read=145219
+         ->  Append  (cost=0.00..256412.42 rows=5778767 width=10) (actual time=0.029..1357.484 rows=5778550 loops=1)
+               Buffers: shared hit=10065 read=145219
+               ->  Seq Scan on clean_yellow_trips_202401 clean_yellow_trips_1  (cost=0.00..113148.06 rows=2872085 width=10) (actual time=0.029..500.630 rows=2872087 loops=1)
+                     Buffers: shared hit=844 read=76403
+               ->  Seq Scan on clean_yellow_trips_202402 clean_yellow_trips_2  (cost=0.00..114369.30 rows=2906664 width=10) (actual time=0.029..542.612 rows=2906445 loops=1)
+                     Buffers: shared hit=9220 read=68816
+               ->  Seq Scan on clean_yellow_trips_default clean_yellow_trips_3  (cost=0.00..1.22 rows=18 width=10) (actual time=0.026..0.028 rows=18 loops=1)
+                     Buffers: shared hit=1
+ Planning:
+   Buffers: shared hit=144
+ Planning Time: 0.541 ms
+ Execution Time: 2107.982 ms
+(20 rows)

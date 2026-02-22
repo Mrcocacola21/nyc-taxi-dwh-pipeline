@@ -1,0 +1,36 @@
+                                                                                       QUERY PLAN                                                                                        
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=192663.01..192663.06 rows=20 width=16) (actual time=2349.445..2351.627 rows=20 loops=1)
+   Buffers: shared hit=2096 read=153248 dirtied=153280 written=153152
+   ->  Sort  (cost=192663.01..192663.48 rows=190 width=16) (actual time=2349.444..2351.623 rows=20 loops=1)
+         Sort Key: (count(*)) DESC
+         Sort Method: top-N heapsort  Memory: 26kB
+         Buffers: shared hit=2096 read=153248 dirtied=153280 written=153152
+         ->  Finalize GroupAggregate  (cost=192609.82..192657.95 rows=190 width=16) (actual time=2349.258..2351.569 rows=222 loops=1)
+               Group Key: pu_location_id
+               Buffers: shared hit=2096 read=153248 dirtied=153280 written=153152
+               ->  Gather Merge  (cost=192609.82..192654.15 rows=380 width=16) (actual time=2349.253..2351.502 rows=588 loops=1)
+                     Workers Planned: 2
+                     Workers Launched: 2
+                     Buffers: shared hit=2096 read=153248 dirtied=153280 written=153152
+                     ->  Sort  (cost=191609.79..191610.27 rows=190 width=16) (actual time=2344.419..2344.428 rows=196 loops=3)
+                           Sort Key: pu_location_id
+                           Sort Method: quicksort  Memory: 32kB
+                           Buffers: shared hit=2096 read=153248 dirtied=153280 written=153152
+                           Worker 0:  Sort Method: quicksort  Memory: 32kB
+                           Worker 1:  Sort Method: quicksort  Memory: 33kB
+                           ->  Partial HashAggregate  (cost=191600.70..191602.60 rows=190 width=16) (actual time=2344.335..2344.359 rows=196 loops=3)
+                                 Group Key: pu_location_id
+                                 Batches: 1  Memory Usage: 48kB
+                                 Buffers: shared hit=2080 read=153248 dirtied=153280 written=153152
+                                 Worker 0:  Batches: 1  Memory Usage: 48kB
+                                 Worker 1:  Batches: 1  Memory Usage: 48kB
+                                 ->  Parallel Seq Scan on clean_yellow_trips_heap_baseline  (cost=0.00..191433.31 rows=33478 width=8) (actual time=561.541..2340.046 rows=33159 loops=3)
+                                       Filter: ((pickup_ts >= '2024-01-31 00:00:00'::timestamp without time zone) AND (pickup_ts < '2024-02-01 00:00:00'::timestamp without time zone))
+                                       Rows Removed by Filter: 1893025
+                                       Buffers: shared hit=2080 read=153248 dirtied=153280 written=153152
+ Planning:
+   Buffers: shared hit=52
+ Planning Time: 0.288 ms
+ Execution Time: 2351.784 ms
+(33 rows)

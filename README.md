@@ -153,6 +153,55 @@ Versioning note:
 
 ---
 
+## 🧩 Partitioning Strategy (`clean.clean_yellow_trips`)
+
+`clean.clean_yellow_trips` is range-partitioned by `pickup_ts` at monthly granularity.
+
+What this optimizes:
+- **Partition pruning** for bounded time-window queries (q1-like patterns).
+- Reduced scanned scope and buffer footprint when predicates can eliminate whole months.
+
+What this does not optimize much:
+- Global aggregations over all rows (q2/q5 clean-table variants) still scan broad data scope; marts remain the main optimization there.
+
+Implementation details:
+- Partition parent: `clean.clean_yellow_trips` (same logical table name preserved).
+- Monthly partitions: `clean.clean_yellow_trips_YYYYMM` based on ingested `batch_id` months.
+- Safety net: `clean.clean_yellow_trips_default` catches rare timestamp outliers without blocking loads.
+- Partition helper/migration SQL: `sql/init/003_clean_partitioning.sql`.
+- One-time/manual enable script (safe + idempotent): `sql/partition/000_enable_clean_partitioning.sql`.
+- Partition inventory query: `sql/partition/001_list_clean_partitions.sql`.
+- dbt model hook now:
+  - ensures the table is partitioned (migrates legacy heap table if needed),
+  - creates required month partitions from available `batch_id` ranges before insert,
+  - keeps existing incremental delete+insert behavior.
+
+Safe migration command:
+
+```bash
+docker compose exec -T postgres psql -X -U nyc -d nyc_taxi -v ON_ERROR_STOP=1 -f /app/sql/partition/000_enable_clean_partitioning.sql
+```
+
+Inspect partitions:
+
+```bash
+docker compose exec -T postgres psql -X -U nyc -d nyc_taxi -v ON_ERROR_STOP=1 -f /app/sql/partition/001_list_clean_partitions.sql
+```
+
+Partition evidence generation (plans with `BUFFERS`):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File docs\explain\run_partition_explains.ps1
+```
+
+Evidence files are written to `docs/explain/` and include heap-baseline vs partitioned comparisons for q1 (time-window) and q2 (global aggregate), plus partition inventory/hit outputs.
+
+Limitations:
+- Pruning gains are workload-dependent; unbounded/global scans still touch most partitions.
+- The legacy heap-to-partitioned migration uses a table swap. If external objects are tightly bound to the old table OID, recreate them after migration.
+
+---
+
 ## 📊 Benchmarks & Performance Evidence
 
 The project includes a CLI tool that runs queries multiple times, warms up cache, and records execution timings.
@@ -254,7 +303,8 @@ For q2/q5, the dominant cost is aggregation over millions of rows, not row looku
 │   └── ...
 ├── sql/
 │   ├── init/             # Database bootstrapping
-│   └── perf/             # SQL scripts for drop/create indexes
+│   ├── perf/             # SQL scripts for drop/create indexes
+│   └── partition/        # Partition migration + partition inspection scripts
 ├── docs/
 │   ├── explain/          # Captured EXPLAIN ANALYZE plans
 │   └── ge/data_docs/     # Great Expectations HTML Data Docs (generated)
@@ -276,6 +326,8 @@ For q2/q5, the dominant cost is aggregation over millions of rows, not row looku
 | **Run Benchmarks** | `docker compose run --rm pipeline bench --iters 7 --warmup 1 --phase after --run-id <RUN_ID> --batches 2024-01` |
 | **Compare Benchmarks** | `docker compose run --rm pipeline bench-compare --run-id <RUN_ID>` |
 | **GE Checkpoint** | `docker compose run --rm --entrypoint bash pipeline -lc "python -m src.pipeline.ge_checkpoint"` |
+| **Enable Partitioning** | `docker compose exec -T postgres psql -X -U nyc -d nyc_taxi -v ON_ERROR_STOP=1 -f /app/sql/partition/000_enable_clean_partitioning.sql` |
+| **List Partitions** | `docker compose exec -T postgres psql -X -U nyc -d nyc_taxi -v ON_ERROR_STOP=1 -f /app/sql/partition/001_list_clean_partitions.sql` |
 
 ---
 
@@ -321,8 +373,8 @@ Uploaded artifacts:
 ## 🔮 Future Work
 * [x] Tighten and version the GE suites (separate “critical” vs “warning” domains per column).
 * [ ] Add **incremental marts** for multi-month scaling (rolling windows, partition-aware builds).
-* [ ] Implement **partitioning** on `pickup_ts` for warehouse-scale optimization.
-* [ ] **CI/CD** (GitHub Actions): Run dbt compile/tests + optional GE checkpoint on PRs.
+* [x] Implement **partitioning** on `pickup_ts` for warehouse-scale optimization.
+* [x] **CI/CD** (GitHub Actions): Run dbt compile/tests + optional GE checkpoint on PRs.
 * [ ] Extend quality rules for domain-specific anomalies (payment_type=0, negative totals, timestamp edge cases) with documented rationale.
 
 ### Next Steps (short technical)

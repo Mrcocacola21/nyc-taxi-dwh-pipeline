@@ -1,7 +1,11 @@
 -- sql/perf/001_create_indexes.sql
 SET client_min_messages TO WARNING;
 
--- q1: фильтр по pickup_ts + группировка по pu_location_id
+-- Parent-level index DDL.
+-- On partitioned clean.clean_yellow_trips this creates partitioned indexes and
+-- matching indexes on each existing partition.
+
+-- q1: time-window filter on pickup_ts + group by pu_location_id.
 CREATE INDEX IF NOT EXISTS idx_clean_pickup_ts
   ON clean.clean_yellow_trips (pickup_ts)
   INCLUDE (pu_location_id);

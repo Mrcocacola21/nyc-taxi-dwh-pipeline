@@ -35,7 +35,17 @@
   having t.max_ingested_at is null or max(s.ingested_at) > t.max_ingested_at
 {% endset %}
 
+{% set source_bounds_sql %}
+  select
+    min(to_date(batch_id || '-01', 'YYYY-MM-DD'))::timestamp as min_pickup_ts,
+    max(to_date(batch_id || '-01', 'YYYY-MM-DD'))::timestamp as max_pickup_ts
+  from raw.yellow_trips
+  where batch_id ~ '^[0-9]{4}-[0-9]{2}$'
+{% endset %}
+
 {% set pre_hooks = [] %}
+{% do pre_hooks.append("select clean.ensure_clean_yellow_trips_partitioned()") %}
+{% do pre_hooks.append("select clean.ensure_clean_yellow_trips_month_partitions(min_pickup_ts, max_pickup_ts) from (" ~ (source_bounds_sql | trim) ~ ") bounds") %}
 {% if is_incremental() %}
   {% if rebuild_batch_ids_sql | length > 0 %}
     {% do pre_hooks.append("delete from " ~ this ~ " where batch_id in (" ~ (rebuild_batch_ids_sql | join(', ')) ~ ")") %}
@@ -49,6 +59,7 @@
     materialized='incremental',
     unique_key='batch_id',
     incremental_strategy='delete+insert',
+    full_refresh=false,
     pre_hook=pre_hooks
   )
 }}

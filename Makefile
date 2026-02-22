@@ -4,7 +4,7 @@ BENCH_ITERS ?= 7
 BENCH_WARMUP ?= 1
 BENCH_RUN_ID ?= local_run
 
-.PHONY: up down reset-db seed-sample ingest-month dbt dbt-full-refresh dbt-test ge bench-before bench-after bench-compare explain verify-clean-batch
+.PHONY: up down reset-db seed-sample ingest-month dbt dbt-full-refresh dbt-test ge bench-before bench-after bench-compare explain explain-partition partition-enable partition-list verify-clean-batch
 
 up:
 	$(COMPOSE) up -d --build
@@ -46,6 +46,15 @@ bench-compare:
 
 explain:
 	powershell -ExecutionPolicy Bypass -File docs\explain\run_explains.ps1
+
+explain-partition:
+	powershell -ExecutionPolicy Bypass -File docs\explain\run_partition_explains.ps1
+
+partition-enable:
+	$(COMPOSE) exec -T postgres psql -X -U nyc -d nyc_taxi -v ON_ERROR_STOP=1 -f /app/sql/partition/000_enable_clean_partitioning.sql
+
+partition-list:
+	$(COMPOSE) exec -T postgres psql -X -U nyc -d nyc_taxi -v ON_ERROR_STOP=1 -f /app/sql/partition/001_list_clean_partitions.sql
 
 verify-clean-batch:
 	$(COMPOSE) exec -T postgres psql -X -U nyc -d nyc_taxi -v ON_ERROR_STOP=1 -v batch_id=$(MONTH) -f /app/sql/dev/assert_clean_batch_sync.sql

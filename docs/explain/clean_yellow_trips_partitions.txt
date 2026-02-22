@@ -1,0 +1,6 @@
+          partition_name          |                          partition_bound                           | estimated_rows | total_size 
+----------------------------------+--------------------------------------------------------------------+----------------+------------
+ clean.clean_yellow_trips_202401  | FOR VALUES FROM ('2024-01-01 00:00:00') TO ('2024-02-01 00:00:00') |        2872085 | 604 MB
+ clean.clean_yellow_trips_202402  | FOR VALUES FROM ('2024-02-01 00:00:00') TO ('2024-03-01 00:00:00') |        2906664 | 610 MB
+ clean.clean_yellow_trips_default | DEFAULT                                                            |             18 | 16 kB
+(3 rows)

@@ -1,0 +1,36 @@
+                                                                                            QUERY PLAN                                                                                             
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=96489.29..96489.34 rows=20 width=16) (actual time=163.680..166.035 rows=20 loops=1)
+   Buffers: shared hit=764 read=76499
+   ->  Sort  (cost=96489.29..96489.78 rows=196 width=16) (actual time=163.679..166.032 rows=20 loops=1)
+         Sort Key: (count(*)) DESC
+         Sort Method: top-N heapsort  Memory: 26kB
+         Buffers: shared hit=764 read=76499
+         ->  Finalize GroupAggregate  (cost=96434.42..96484.08 rows=196 width=16) (actual time=163.506..165.984 rows=222 loops=1)
+               Group Key: clean_yellow_trips.pu_location_id
+               Buffers: shared hit=764 read=76499
+               ->  Gather Merge  (cost=96434.42..96480.16 rows=392 width=16) (actual time=163.502..165.921 rows=582 loops=1)
+                     Workers Planned: 2
+                     Workers Launched: 2
+                     Buffers: shared hit=764 read=76499
+                     ->  Sort  (cost=95434.40..95434.89 rows=196 width=16) (actual time=160.146..160.155 rows=194 loops=3)
+                           Sort Key: clean_yellow_trips.pu_location_id
+                           Sort Method: quicksort  Memory: 31kB
+                           Buffers: shared hit=764 read=76499
+                           Worker 0:  Sort Method: quicksort  Memory: 32kB
+                           Worker 1:  Sort Method: quicksort  Memory: 32kB
+                           ->  Partial HashAggregate  (cost=95424.98..95426.94 rows=196 width=16) (actual time=160.067..160.085 rows=194 loops=3)
+                                 Group Key: clean_yellow_trips.pu_location_id
+                                 Batches: 1  Memory Usage: 48kB
+                                 Buffers: shared hit=748 read=76499
+                                 Worker 0:  Batches: 1  Memory Usage: 48kB
+                                 Worker 1:  Batches: 1  Memory Usage: 48kB
+                                 ->  Parallel Seq Scan on clean_yellow_trips_202401 clean_yellow_trips  (cost=0.00..95197.53 rows=45489 width=8) (actual time=146.350..156.022 rows=33159 loops=3)
+                                       Filter: ((pickup_ts >= '2024-01-31 00:00:00'::timestamp without time zone) AND (pickup_ts < '2024-02-01 00:00:00'::timestamp without time zone))
+                                       Rows Removed by Filter: 924204
+                                       Buffers: shared hit=748 read=76499
+ Planning:
+   Buffers: shared hit=136
+ Planning Time: 0.830 ms
+ Execution Time: 166.155 ms
+(33 rows)

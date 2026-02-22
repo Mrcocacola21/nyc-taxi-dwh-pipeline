@@ -1,0 +1,7 @@
+              relid               |       parentrelid        | isleaf | level 
+----------------------------------+--------------------------+--------+-------
+ clean.clean_yellow_trips         |                          | f      |     0
+ clean.clean_yellow_trips_default | clean.clean_yellow_trips | t      |     1
+ clean.clean_yellow_trips_202401  | clean.clean_yellow_trips | t      |     1
+ clean.clean_yellow_trips_202402  | clean.clean_yellow_trips | t      |     1
+(4 rows)
