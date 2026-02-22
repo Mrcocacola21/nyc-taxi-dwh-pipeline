@@ -1,3 +1,20 @@
+{% set mart_window_start_ts_sql = taxi_mart_window_start_ts_sql() %}
+{% set mart_window_end_ts_sql = taxi_mart_window_end_ts_sql() %}
+
+{% set pre_hooks = [] %}
+{% if is_incremental() %}
+  {% do pre_hooks.append("delete from " ~ this ~ " where trip_date >= (" ~ mart_window_start_ts_sql ~ ")::date and trip_date < (" ~ mart_window_end_ts_sql ~ ")::date") %}
+{% endif %}
+
+{{
+  config(
+    materialized='incremental',
+    unique_key=['trip_date', 'pu_location_id'],
+    incremental_strategy='delete+insert',
+    pre_hook=pre_hooks
+  )
+}}
+
 with trips as (
   select
     pickup_ts::date as trip_date,
@@ -8,6 +25,9 @@ with trips as (
     trip_distance,
     trip_duration_sec
   from {{ ref('clean_yellow_trips') }}
+  {% if is_incremental() %}
+    where {{ taxi_mart_incremental_source_filter('pickup_ts') }}
+  {% endif %}
 ),
 
 agg as (

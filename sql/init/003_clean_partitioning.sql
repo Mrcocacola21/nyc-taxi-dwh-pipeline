@@ -54,6 +54,10 @@ DECLARE
   v_month_start timestamp without time zone;
   v_month_stop timestamp without time zone;
   v_partition_name text;
+  v_partition_regclass regclass;
+  v_default_schema_name text;
+  v_default_partition_name text;
+  v_temp_table_name text;
 BEGIN
   IF p_min_pickup_ts IS NULL OR p_max_pickup_ts IS NULL THEN
     RETURN;
@@ -77,8 +81,50 @@ BEGIN
   v_month_start := date_trunc('month', p_min_pickup_ts);
   v_month_stop := date_trunc('month', p_max_pickup_ts) + interval '1 month';
 
+  SELECT n.nspname, c.relname
+  INTO v_default_schema_name, v_default_partition_name
+  FROM pg_inherits i
+  JOIN pg_class c ON c.oid = i.inhrelid
+  JOIN pg_namespace n ON n.oid = c.relnamespace
+  WHERE i.inhparent = p_parent
+    AND pg_get_expr(c.relpartbound, c.oid, true) = 'DEFAULT'
+  LIMIT 1;
+
   WHILE v_month_start < v_month_stop LOOP
     v_partition_name := format('%s_%s', v_prefix, to_char(v_month_start, 'YYYYMM'));
+    SELECT to_regclass(format('%I.%I', v_schema_name, v_partition_name))
+    INTO v_partition_regclass;
+
+    IF v_partition_regclass IS NOT NULL THEN
+      v_month_start := v_month_start + interval '1 month';
+      CONTINUE;
+    END IF;
+
+    v_temp_table_name := NULL;
+    IF v_default_partition_name IS NOT NULL THEN
+      v_temp_table_name := format(
+        'tmp_rehome_%s_%s',
+        to_char(clock_timestamp(), 'YYYYMMDDHH24MISSMS'),
+        floor(random() * 1000000)::int
+      );
+      EXECUTE format(
+        'create temporary table %I on commit drop as ' ||
+        'select * from %I.%I where pickup_ts >= %L and pickup_ts < %L',
+        v_temp_table_name,
+        v_default_schema_name,
+        v_default_partition_name,
+        v_month_start,
+        v_month_start + interval '1 month'
+      );
+      EXECUTE format(
+        'delete from %I.%I where pickup_ts >= %L and pickup_ts < %L',
+        v_default_schema_name,
+        v_default_partition_name,
+        v_month_start,
+        v_month_start + interval '1 month'
+      );
+    END IF;
+
     EXECUTE format(
       'create table if not exists %I.%I partition of %s for values from (%L) to (%L)',
       v_schema_name,
@@ -87,6 +133,11 @@ BEGIN
       v_month_start,
       v_month_start + interval '1 month'
     );
+
+    IF v_temp_table_name IS NOT NULL THEN
+      EXECUTE format('insert into %s select * from %I', p_parent::text, v_temp_table_name);
+      EXECUTE format('drop table if exists %I', v_temp_table_name);
+    END IF;
     v_month_start := v_month_start + interval '1 month';
   END LOOP;
 END;
@@ -105,11 +156,16 @@ BEGIN
     'clean.clean_yellow_trips'::regclass,
     'clean_yellow_trips_default'
   );
+
+  IF p_min_pickup_ts IS NULL OR p_max_pickup_ts IS NULL THEN
+    RETURN;
+  END IF;
+
   PERFORM clean.ensure_monthly_range_partitions(
     'clean.clean_yellow_trips'::regclass,
     'clean_yellow_trips',
     p_min_pickup_ts,
-    p_max_pickup_ts
+    p_max_pickup_ts + interval '1 month'
   );
 END;
 $$;
@@ -239,7 +295,7 @@ BEGIN
     'clean.clean_yellow_trips__p_new'::regclass,
     'clean_yellow_trips',
     v_min_batch_month,
-    v_max_batch_month
+    v_max_batch_month + interval '1 month'
   );
 
   EXECUTE 'insert into clean.clean_yellow_trips__p_new select * from clean.clean_yellow_trips';

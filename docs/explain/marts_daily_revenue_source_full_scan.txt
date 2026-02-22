@@ -1,0 +1,27 @@
+                                                                                  QUERY PLAN                                                                                  
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=1809025.56..1818387.28 rows=3744690 width=44) (actual time=3335.251..3335.257 rows=96 loops=1)
+   Sort Key: ((clean_yellow_trips.pickup_ts)::date)
+   Sort Method: quicksort  Memory: 30kB
+   Buffers: shared hit=7827 read=239486 dirtied=2
+   ->  HashAggregate  (cost=1023447.55..1169781.53 rows=3744690 width=44) (actual time=3335.113..3335.203 rows=96 loops=1)
+         Group Key: ((clean_yellow_trips.pickup_ts)::date)
+         Planned Partitions: 256  Batches: 1  Memory Usage: 849kB
+         Buffers: shared hit=7824 read=239486 dirtied=2
+         ->  Append  (cost=0.00..408892.23 rows=9232756 width=10) (actual time=0.086..2136.796 rows=9233393 loops=1)
+               Buffers: shared hit=7824 read=239486 dirtied=2
+               ->  Seq Scan on clean_yellow_trips_202401 clean_yellow_trips_1  (cost=0.00..113136.93 rows=2871194 width=10) (actual time=0.085..517.849 rows=2872087 loops=1)
+                     Buffers: shared read=77247
+               ->  Seq Scan on clean_yellow_trips_202402 clean_yellow_trips_2  (cost=0.00..114361.95 rows=2905996 width=10) (actual time=0.029..512.871 rows=2906464 loops=1)
+                     Buffers: shared hit=16 read=78021
+               ->  Seq Scan on clean_yellow_trips_202403 clean_yellow_trips_3  (cost=0.00..135216.35 rows=3455388 width=10) (actual time=0.062..604.696 rows=3454822 loops=1)
+                     Buffers: shared hit=7808 read=84216
+               ->  Seq Scan on clean_yellow_trips_202404 clean_yellow_trips_4  (cost=0.00..12.00 rows=160 width=10) (actual time=0.132..0.132 rows=2 loops=1)
+                     Buffers: shared read=1 dirtied=1
+               ->  Seq Scan on clean_yellow_trips_default clean_yellow_trips_5  (cost=0.00..1.22 rows=18 width=10) (actual time=0.015..0.018 rows=18 loops=1)
+                     Buffers: shared read=1 dirtied=1
+ Planning:
+   Buffers: shared hit=211 read=2
+ Planning Time: 0.685 ms
+ Execution Time: 3336.052 ms
+(24 rows)

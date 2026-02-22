@@ -1,0 +1,29 @@
+version: 2
+
+models:
+  - name: marts_daily_revenue
+    columns:
+      - name: trip_date
+        tests: [not_null, unique]
+      - name: trips
+        tests: [not_null]
+      - name: revenue
+        tests: [not_null]
+
+  - name: marts_hourly_peak
+    columns:
+      - name: pickup_hour
+        tests: [not_null, unique]
+      - name: hr
+        tests: [not_null]
+      - name: trips
+        tests: [not_null]
+
+  - name: daily_zone_metrics
+    columns:
+      - name: trip_date
+        tests: [not_null]
+      - name: pu_location_id
+        tests: [not_null]
+      - name: trips
+        tests: [not_null]

@@ -1,0 +1,23 @@
+                                                                                  QUERY PLAN                                                                                  
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=1270751.55..1277200.50 rows=2579582 width=44) (actual time=2437.886..2437.891 rows=60 loops=1)
+   Sort Key: ((clean_yellow_trips.pickup_ts)::date)
+   Sort Method: quicksort  Memory: 28kB
+   Buffers: shared hit=7875 read=162189
+   ->  HashAggregate  (cost=736527.56..837331.75 rows=2579582 width=44) (actual time=2437.775..2437.842 rows=60 loops=1)
+         Group Key: ((clean_yellow_trips.pickup_ts)::date)
+         Planned Partitions: 128  Batches: 1  Memory Usage: 817kB
+         Buffers: shared hit=7872 read=162189
+         ->  Append  (cost=0.00..313182.60 rows=6360112 width=10) (actual time=0.035..1606.603 rows=6361286 loops=1)
+               Buffers: shared hit=7872 read=162189
+               ->  Seq Scan on clean_yellow_trips_202402 clean_yellow_trips_1  (cost=0.00..128890.48 rows=2905415 width=10) (actual time=0.034..580.352 rows=2906464 loops=1)
+                     Filter: ((pickup_ts >= '2024-02-01 00:00:00'::timestamp without time zone) AND (pickup_ts < '2024-04-01 00:00:00'::timestamp without time zone))
+                     Buffers: shared hit=32 read=78005
+               ->  Seq Scan on clean_yellow_trips_202403 clean_yellow_trips_2  (cost=0.00..152491.56 rows=3454697 width=10) (actual time=0.040..682.425 rows=3454822 loops=1)
+                     Filter: ((pickup_ts >= '2024-02-01 00:00:00'::timestamp without time zone) AND (pickup_ts < '2024-04-01 00:00:00'::timestamp without time zone))
+                     Buffers: shared hit=7840 read=84184
+ Planning:
+   Buffers: shared hit=167
+ Planning Time: 0.729 ms
+ Execution Time: 2438.668 ms
+(20 rows)

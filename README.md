@@ -202,6 +202,65 @@ Limitations:
 
 ---
 
+## ⚙️ Incremental Marts (Rolling Window)
+
+The marts layer now uses incremental builds for multi-month scaling:
+
+- `marts.marts_daily_revenue` (grain: `trip_date`)
+- `marts.marts_hourly_peak` (grain: `pickup_hour`)
+- `marts.daily_zone_metrics` (grain: `trip_date`, `pu_location_id`)
+
+Implementation strategy:
+
+- dbt materialization: `incremental`
+- strategy: `delete+insert`
+- rolling-window rebuild on incremental runs:
+  - source filter is bounded on `pickup_ts` so partition pruning can apply on `clean.clean_yellow_trips`
+  - target slice in the same window is deleted before insert (idempotent reruns, no duplicates)
+
+Window configuration:
+
+- Env var: `MART_LOOKBACK_MONTHS` (default `2`, see `.env.example`)
+- dbt var override: `mart_lookback_months`
+- window anchor is derived from ingested `batch_id` months in `raw.yellow_trips`
+  - incremental source predicate shape:
+    - `pickup_ts >= window_start`
+    - `pickup_ts < window_end`
+
+Late-arriving data behavior:
+
+- Late rows are captured if they fall within the configured lookback window.
+- If late rows arrive outside the lookback horizon, increase `MART_LOOKBACK_MONTHS` or run `--full-refresh`.
+
+Partition-aware evidence (source scan scope):
+
+```bash
+# full-scan source aggregate (writes EXPLAIN with BUFFERS)
+docker compose exec -T postgres psql -X -U nyc -d nyc_taxi -v ON_ERROR_STOP=1 \
+  -c "EXPLAIN (ANALYZE, BUFFERS) SELECT pickup_ts::date AS trip_date, count(*) AS trips, sum(total_amount) AS revenue FROM clean.clean_yellow_trips GROUP BY 1 ORDER BY 1;" \
+  > docs/explain/marts_daily_revenue_source_full_scan.txt
+
+# bounded-window source aggregate (pruning candidate; adjust dates as needed)
+docker compose exec -T postgres psql -X -U nyc -d nyc_taxi -v ON_ERROR_STOP=1 \
+  -c "EXPLAIN (ANALYZE, BUFFERS) SELECT pickup_ts::date AS trip_date, count(*) AS trips, sum(total_amount) AS revenue FROM clean.clean_yellow_trips WHERE pickup_ts >= '2024-02-01'::timestamp AND pickup_ts < '2024-04-01'::timestamp GROUP BY 1 ORDER BY 1;" \
+  > docs/explain/marts_daily_revenue_source_window_scan.txt
+```
+
+Useful commands:
+
+```bash
+# full deterministic rebuild
+docker compose run --rm --entrypoint bash pipeline -lc "cd /app/dbt && dbt run --select marts --full-refresh"
+
+# incremental mart run with default lookback
+docker compose run --rm --entrypoint bash pipeline -lc "cd /app/dbt && dbt run --select marts"
+
+# incremental mart run with custom lookback
+docker compose run --rm --entrypoint bash pipeline -lc "cd /app/dbt && MART_LOOKBACK_MONTHS=3 dbt run --select marts"
+```
+
+---
+
 ## 📊 Benchmarks & Performance Evidence
 
 The project includes a CLI tool that runs queries multiple times, warms up cache, and records execution timings.
@@ -372,7 +431,7 @@ Uploaded artifacts:
 
 ## 🔮 Future Work
 * [x] Tighten and version the GE suites (separate “critical” vs “warning” domains per column).
-* [ ] Add **incremental marts** for multi-month scaling (rolling windows, partition-aware builds).
+* [x] Add **incremental marts** for multi-month scaling (rolling windows, partition-aware builds).
 * [x] Implement **partitioning** on `pickup_ts` for warehouse-scale optimization.
 * [x] **CI/CD** (GitHub Actions): Run dbt compile/tests + optional GE checkpoint on PRs.
 * [ ] Extend quality rules for domain-specific anomalies (payment_type=0, negative totals, timestamp edge cases) with documented rationale.
