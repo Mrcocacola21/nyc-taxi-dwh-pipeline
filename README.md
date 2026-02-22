@@ -104,12 +104,14 @@ docker compose run --rm --entrypoint bash pipeline -lc "cd /app/dbt && dbt test"
 ```
 
 ### 6. Run Great Expectations Checkpoint
-Runs a checkpoint against `clean.clean_yellow_trips`, writes a JSON artifact, and generates HTML Data Docs:
+Runs versioned Great Expectations suites against `clean.clean_yellow_trips` and generates auditable artifacts:
 ```bash
 docker compose run --rm --entrypoint bash pipeline -lc "python -m src.pipeline.ge_checkpoint"
 ```
-* **Output:** Data Docs are available in `docs/ge/data_docs/index.html`.
-* *Note:* Some "soft rules" (e.g., `payment_type` set membership) are configured with `mostly < 1.0` to reflect real-world data while keeping the pipeline actionable.
+* **Critical suite (blocking by default):** `clean_yellow_trips__critical__v1`
+* **Warning suite (non-blocking by default):** `clean_yellow_trips__warning__v1`
+* **Output JSON:** `data/reports/ge/checkpoint_result_<timestamp>.json` (combined) and per-suite files (`..._critical.json`, `..._warning.json`)
+* **Data Docs:** `docs/ge/data_docs/index.html`
 
 ### 7. Access Database
 Database management via **Adminer** at [http://localhost:8080](http://localhost:8080).
@@ -123,11 +125,31 @@ Database management via **Adminer** at [http://localhost:8080](http://localhost:
 A minimal-but-formal set of schema tests validates key columns (`not_null`, `unique`, etc.) and provides fast feedback during the transformation development cycle.
 
 ### Great Expectations Checkpoint
-Great Expectations is used to produce:
-1.  **Machine-readable validation output:** JSON artifacts in `data/reports/ge/`.
-2.  **Human-readable HTML Data Docs:** Located in `docs/ge/data_docs/`.
+Great Expectations runs two policy suites in one execution:
+1. **Critical (pipeline/data integrity):** blocking by default.
+2. **Warning (anomaly monitoring):** non-blocking by default, but always reported.
 
-This establishes auditability and makes data-quality claims reproducible and transparent.
+Current suite names are versioned for reproducibility:
+- `clean_yellow_trips__critical__v1`
+- `clean_yellow_trips__warning__v1`
+
+Rule domains:
+- **Critical:** required not-null columns (`pickup_ts`, `dropoff_ts`, `pu_location_id`, `do_location_id`), non-negative `total_amount`, and aligned timestamps (`dropoff_ts >= pickup_ts` with `GE_MOSTLY` tolerance).
+- **Warning:** non-negative `trip_distance`, `passenger_count` bounds, and `payment_type` domain realism (with `GE_PAYMENT_TYPE_MOSTLY` tolerance).
+
+Execution/fail policy env vars:
+- `GE_FAIL_ON_ERROR` (default `1`): fail process on critical-suite failure.
+- `GE_FAIL_ON_WARNING` (default `0`): optionally fail process on warning-suite failure.
+- `GE_SUITE_VERSION_CRITICAL` / `GE_SUITE_VERSION_WARNING` (default `v1`): suite version suffixes.
+
+Artifacts:
+- Combined summary JSON: `data/reports/ge/checkpoint_result_<timestamp>.json`
+- Per-suite JSON: `data/reports/ge/checkpoint_result_<timestamp>_critical.json` and `..._warning.json`
+- Data Docs: `docs/ge/data_docs/index.html`
+
+Versioning note:
+- Keep old suite versions immutable for reproducibility.
+- To introduce a new policy revision, bump `GE_SUITE_VERSION_CRITICAL` and/or `GE_SUITE_VERSION_WARNING` to `v2` (or set explicit `GE_SUITE_NAME_*` overrides), then run GE again.
 
 ---
 
@@ -297,7 +319,7 @@ Uploaded artifacts:
 ---
 
 ## 🔮 Future Work
-* [ ] Tighten and version the GE suites (separate “critical” vs “warning” domains per column).
+* [x] Tighten and version the GE suites (separate “critical” vs “warning” domains per column).
 * [ ] Add **incremental marts** for multi-month scaling (rolling windows, partition-aware builds).
 * [ ] Implement **partitioning** on `pickup_ts` for warehouse-scale optimization.
 * [ ] **CI/CD** (GitHub Actions): Run dbt compile/tests + optional GE checkpoint on PRs.

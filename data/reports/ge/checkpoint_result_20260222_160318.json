@@ -1,0 +1,254 @@
+{
+  "generated_at": "2026-02-22T16:03:20",
+  "success": true,
+  "table": {
+    "schema": "clean",
+    "name": "clean_yellow_trips"
+  },
+  "fail_policy": {
+    "GE_FAIL_ON_ERROR": 1,
+    "GE_FAIL_ON_WARNING": 0,
+    "exit_nonzero": 0
+  },
+  "suites": {
+    "critical": {
+      "name": "clean_yellow_trips__critical__v1",
+      "version": "v1",
+      "checkpoint_name": "cp_clean_yellow_trips__critical__v1",
+      "validation_definition_name": "vd_clean_yellow_trips_whole_table__critical__v1",
+      "success": true,
+      "evaluated_expectations": 6,
+      "failed_expectations": 0
+    },
+    "warning": {
+      "name": "clean_yellow_trips__warning__v1",
+      "version": "v1",
+      "checkpoint_name": "cp_clean_yellow_trips__warning__v1",
+      "validation_definition_name": "vd_clean_yellow_trips_whole_table__warning__v1",
+      "success": true,
+      "evaluated_expectations": 3,
+      "failed_expectations": 0
+    }
+  },
+  "results": {
+    "critical": {
+      "success": true,
+      "statistics": {
+        "evaluated_validations": 1,
+        "success_percent": 100.0,
+        "successful_validations": 1,
+        "unsuccessful_validations": 0
+      },
+      "validation_results": [
+        {
+          "success": true,
+          "statistics": {
+            "evaluated_expectations": 6,
+            "successful_expectations": 6,
+            "unsuccessful_expectations": 0,
+            "success_percent": 100.0
+          },
+          "expectations": [
+            {
+              "expectation_type": "expect_column_values_to_not_be_null",
+              "success": true,
+              "kwargs": {
+                "batch_id": "nyc_postgres-clean_yellow_trips",
+                "column": "pickup_ts"
+              },
+              "result": {
+                "element_count": 5,
+                "unexpected_count": 0,
+                "unexpected_percent": 0.0,
+                "partial_unexpected_list": [],
+                "partial_unexpected_counts": []
+              }
+            },
+            {
+              "expectation_type": "expect_column_values_to_not_be_null",
+              "success": true,
+              "kwargs": {
+                "batch_id": "nyc_postgres-clean_yellow_trips",
+                "column": "dropoff_ts"
+              },
+              "result": {
+                "element_count": 5,
+                "unexpected_count": 0,
+                "unexpected_percent": 0.0,
+                "partial_unexpected_list": [],
+                "partial_unexpected_counts": []
+              }
+            },
+            {
+              "expectation_type": "expect_column_values_to_not_be_null",
+              "success": true,
+              "kwargs": {
+                "batch_id": "nyc_postgres-clean_yellow_trips",
+                "column": "pu_location_id"
+              },
+              "result": {
+                "element_count": 5,
+                "unexpected_count": 0,
+                "unexpected_percent": 0.0,
+                "partial_unexpected_list": [],
+                "partial_unexpected_counts": []
+              }
+            },
+            {
+              "expectation_type": "expect_column_values_to_not_be_null",
+              "success": true,
+              "kwargs": {
+                "batch_id": "nyc_postgres-clean_yellow_trips",
+                "column": "do_location_id"
+              },
+              "result": {
+                "element_count": 5,
+                "unexpected_count": 0,
+                "unexpected_percent": 0.0,
+                "partial_unexpected_list": [],
+                "partial_unexpected_counts": []
+              }
+            },
+            {
+              "expectation_type": "expect_column_values_to_be_between",
+              "success": true,
+              "kwargs": {
+                "batch_id": "nyc_postgres-clean_yellow_trips",
+                "column": "total_amount",
+                "min_value": 0.0
+              },
+              "result": {
+                "element_count": 5,
+                "unexpected_count": 0,
+                "unexpected_percent": 0.0,
+                "partial_unexpected_list": [],
+                "missing_count": 0,
+                "missing_percent": 0.0,
+                "unexpected_percent_total": 0.0,
+                "unexpected_percent_nonmissing": 0.0,
+                "partial_unexpected_counts": []
+              }
+            },
+            {
+              "expectation_type": "expect_column_pair_values_a_to_be_greater_than_b",
+              "success": true,
+              "kwargs": {
+                "batch_id": "nyc_postgres-clean_yellow_trips",
+                "column_A": "dropoff_ts",
+                "column_B": "pickup_ts",
+                "mostly": 0.999,
+                "or_equal": true,
+                "ignore_row_if": "either_value_is_missing"
+              },
+              "result": {
+                "element_count": 5,
+                "unexpected_count": 0,
+                "unexpected_percent": 0.0,
+                "partial_unexpected_list": [],
+                "missing_count": 0,
+                "missing_percent": 0.0,
+                "unexpected_percent_total": 0.0,
+                "unexpected_percent_nonmissing": 0.0,
+                "partial_unexpected_counts": []
+              }
+            }
+          ],
+          "result_url": null
+        }
+      ]
+    },
+    "warning": {
+      "success": true,
+      "statistics": {
+        "evaluated_validations": 1,
+        "success_percent": 100.0,
+        "successful_validations": 1,
+        "unsuccessful_validations": 0
+      },
+      "validation_results": [
+        {
+          "success": true,
+          "statistics": {
+            "evaluated_expectations": 3,
+            "successful_expectations": 3,
+            "unsuccessful_expectations": 0,
+            "success_percent": 100.0
+          },
+          "expectations": [
+            {
+              "expectation_type": "expect_column_values_to_be_between",
+              "success": true,
+              "kwargs": {
+                "batch_id": "nyc_postgres-clean_yellow_trips",
+                "column": "trip_distance",
+                "min_value": 0.0
+              },
+              "result": {
+                "element_count": 5,
+                "unexpected_count": 0,
+                "unexpected_percent": 0.0,
+                "partial_unexpected_list": [],
+                "missing_count": 0,
+                "missing_percent": 0.0,
+                "unexpected_percent_total": 0.0,
+                "unexpected_percent_nonmissing": 0.0,
+                "partial_unexpected_counts": []
+              }
+            },
+            {
+              "expectation_type": "expect_column_values_to_be_between",
+              "success": true,
+              "kwargs": {
+                "batch_id": "nyc_postgres-clean_yellow_trips",
+                "column": "passenger_count",
+                "mostly": 0.999,
+                "min_value": 0.0,
+                "max_value": 8.0
+              },
+              "result": {
+                "element_count": 5,
+                "unexpected_count": 0,
+                "unexpected_percent": 0.0,
+                "partial_unexpected_list": [],
+                "missing_count": 0,
+                "missing_percent": 0.0,
+                "unexpected_percent_total": 0.0,
+                "unexpected_percent_nonmissing": 0.0,
+                "partial_unexpected_counts": []
+              }
+            },
+            {
+              "expectation_type": "expect_column_values_to_be_in_set",
+              "success": true,
+              "kwargs": {
+                "batch_id": "nyc_postgres-clean_yellow_trips",
+                "column": "payment_type",
+                "mostly": 0.95,
+                "value_set": [
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6
+                ]
+              },
+              "result": {
+                "element_count": 5,
+                "unexpected_count": 0,
+                "unexpected_percent": 0.0,
+                "partial_unexpected_list": [],
+                "missing_count": 0,
+                "missing_percent": 0.0,
+                "unexpected_percent_total": 0.0,
+                "unexpected_percent_nonmissing": 0.0,
+                "partial_unexpected_counts": []
+              }
+            }
+          ],
+          "result_url": null
+        }
+      ]
+    }
+  }
+}
