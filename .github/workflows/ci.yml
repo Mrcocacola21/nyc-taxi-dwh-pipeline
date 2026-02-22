@@ -91,6 +91,22 @@ jobs:
       - name: Start services
         run: docker compose up -d --build
 
+      - name: Wait for Postgres readiness
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in {1..30}; do
+            if docker compose exec -T postgres pg_isready -U nyc -d nyc_taxi >/dev/null 2>&1; then
+              echo "Postgres is ready"
+              exit 0
+            fi
+            echo "Waiting for Postgres (${i}/30)..."
+            sleep 2
+          done
+          echo "Postgres did not become ready in time. Recent postgres logs:"
+          docker compose logs --no-color postgres | tail -n 200
+          exit 1
+
       - name: Seed deterministic sample
         run: docker compose exec -T postgres psql -X -U nyc -d nyc_taxi -v ON_ERROR_STOP=1 -f /app/sql/dev/seed_ci_sample.sql
 
@@ -107,8 +123,18 @@ jobs:
         if: ${{ steps.ge_flag.outputs.run_ge == 'true' }}
         run: docker compose run --rm --entrypoint bash pipeline -lc "python -m src.pipeline.ge_checkpoint"
 
+      - name: Drop indexes for bench before
+        run: docker compose exec -T postgres psql -X -U nyc -d nyc_taxi -v ON_ERROR_STOP=1 -f /app/sql/perf/000_drop_indexes.sql
+
       - name: Bench before (light)
         run: docker compose run --rm pipeline bench --iters 2 --warmup 0 --phase before --run-id "${RUN_ID}" --batches 2024-01
+
+      - name: Create indexes + VACUUM ANALYZE for bench after
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker compose exec -T postgres psql -X -U nyc -d nyc_taxi -v ON_ERROR_STOP=1 -f /app/sql/perf/001_create_indexes.sql
+          docker compose exec -T postgres psql -X -U nyc -d nyc_taxi -v ON_ERROR_STOP=1 -c "VACUUM (ANALYZE) clean.clean_yellow_trips;"
 
       - name: Bench after (light)
         run: docker compose run --rm pipeline bench --iters 2 --warmup 0 --phase after --run-id "${RUN_ID}" --batches 2024-01
